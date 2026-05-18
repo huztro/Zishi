@@ -19,6 +19,7 @@ const {
 } = require('discord.js');
 require('dotenv').config();
 const moderationCommandsList = require('./commands/moderation.js');
+const applicationCommandsList = require('./commands/applications.js');
 
 // Initialize client with critical gateway scopes
 const client = new Client({
@@ -168,6 +169,15 @@ const mockModCommands = [
     { name: 'slowmodestop', desc: 'Resets channel transmission parameters back to immediate messaging.' },
     { name: 'clearinfractions', desc: 'Wipes the entire administrative log file for a given member.' }
 ];
+
+// Load standard external command array packages directly into our map cache system
+moderationCommandsList.forEach(cmd => {
+    commands.set(cmd.name, cmd);
+});
+applicationCommandsList.forEach(cmd => {
+    commands.set(cmd.name, cmd);
+});
+
 // ==========================================
 // UNIFIED TRANSLATION PIPELINE BRIDGE
 // ==========================================
@@ -184,7 +194,10 @@ class UnifiedContext {
         
         // Universal interface options extraction mapping layer
         this.options = {
-            getUser: (name) => this.isInteraction ? source.options.getUser(name) : source.mentions.users.first()
+            getUser: (name) => this.isInteraction ? source.options.getUser(name) : source.mentions.users.first(),
+            getString: (name) => this.isInteraction ? source.options.getString(name) : null,
+            getInteger: (name) => this.isInteraction ? source.options.getInteger(name) : null,
+            getRole: (name) => this.isInteraction ? source.options.getRole(name) : null
         };
         this.mentions = source.mentions || null;
     }
@@ -214,7 +227,7 @@ class UnifiedContext {
 client.once('ready', async () => {
     console.log(`🚀 System Engine initialized as: ${client.user.tag}`);
     
-// ==========================================
+    // ==========================================
     // 5 PREMIUM STATUS + DND / ONLINE ROTATOR
     // ==========================================
     const statuses = [
@@ -251,7 +264,7 @@ client.once('ready', async () => {
         });
 
         // Debugging confirmation log in your host console
-        console.log(`📝 Status text updated: "${currentStatus.text}" [Mode: ${presenceMode.toUpperCase()}]`);
+        console.log(`... Status text updated: "${currentStatus.text}" [Mode: ${presenceMode.toUpperCase()}]`);
 
         // Move to the next status in the list, loop back to 0 if at the end
         currentIndex = (currentIndex + 1) % statuses.length;
@@ -269,7 +282,7 @@ client.once('ready', async () => {
         });
 
         // Debugging confirmation log in your host console
-        console.log(`🔁 Presence mode toggled: [Mode: ${presenceMode.toUpperCase()}]`);
+        console.log(`🔄 Presence mode toggled: [Mode: ${presenceMode.toUpperCase()}]`);
     }
 
     // Sync all commands to Discord Application Gateway
@@ -321,6 +334,16 @@ client.on('messageCreate', async (message) => {
         return message.reply('❌ You lack the administrative clearance permissions to invoke this asset.');
     }
 
+    // Run custom external array structures directly with context and args if available
+    if (typeof command.run === 'function' && !command.hasOwnProperty('name')) {
+        try {
+            return await command.run(message, args);
+        } catch (err) {
+            console.error(err);
+            return message.reply('❌ System dynamic layer execution failure.');
+        }
+    }
+
     const context = new UnifiedContext(message, client);
     try {
         await command.run(context);
@@ -335,6 +358,21 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isChatInputCommand()) {
         const command = commands.get(interaction.commandName);
         if (!command) return;
+
+        // Verify Slash Command Permission Sets
+        if (command.permissions && !interaction.member.permissions.has(command.permissions)) {
+            return interaction.reply({ content: '❌ You lack the administrative clearance permissions to invoke this asset.', ephemeral: true });
+        }
+
+        // Direct handling override routing interface built for arrays like applications.js
+        if (typeof command.run === 'function' && !command.hasOwnProperty('name')) {
+            try {
+                return await command.run(interaction, null);
+            } catch (err) {
+                console.error(err);
+                return interaction.reply({ content: '❌ System external layer execution failure.', ephemeral: true });
+            }
+        }
 
         const context = new UnifiedContext(interaction, client);
         try {
@@ -414,7 +452,7 @@ client.on('interactionCreate', async (interaction) => {
                 const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === '﹒⚔・Verified . ?');
                 if (verifiedRole) {
                     await interaction.member.roles.add(verifiedRole).catch(() => {});
-                    await interaction.update({ content: '✅ **Verification Passed!** Your client container signature has been updated. Access granted.', embeds: [], components: [] });
+                    await interaction.update({ content: '... **Verification Passed!** Your client container signature has been updated. Access granted.', embeds: [], components: [] });
                 } else {
                     await interaction.update({ content: '⚠️ **Verification Passed!** However, no role named precisely `"﹒⚔・Verified . ?"` was detected on this server configuration.', embeds: [], components: [] });
                 }
