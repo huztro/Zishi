@@ -83,7 +83,7 @@ register('ping', 'Check connection latency.', null, [], async (ctx) => {
 register('status', 'Displays total architectural system statistics and performance metrics.', null, [], async (ctx) => {
     const health = getHealthMetrics(ctx.client);
     const embed = new EmbedBuilder()
-        .setTitle('🤖 System Engine Core Diagnostics')
+        .setTitle('🤖 Bot Status')
         .setColor(0x00FFCC)
         .addFields(
             { name: '📡 Network Gateway Ping', value: `\`${health.ping}\``, inline: true },
@@ -214,8 +214,43 @@ class UnifiedContext {
 client.once('ready', async () => {
     console.log(`🚀 System Engine initialized as: ${client.user.tag}`);
     
-    // Set static operational parameters
-    client.user.setPresence({ activities: [{ name: 'Overwatching Mainframe Safety Engine | !help', type: 3 }], status: 'dnd' });
+// ==========================================
+    // 5 PREMIUM STATUS + DND / ONLINE ROTATOR
+    // ==========================================
+    const statuses = [
+        { text: 'Made By Huztro', type: 3 }, // Type 3 = Watching
+        { text: 'Ensuring Uptime Stability', type: 0 }, // Type 0 = Playing
+        { text: 'Optimizing Performance Modules', type: 2 }, // Type 2 = Listening to
+        { text: 'Executing System Diagnostics', type: 3 },
+        { text: 'Protecting Servers', type: 1 }  // Type 1 = Streaming
+    ];
+
+    let currentIndex = 0;
+
+    // Changes status instantly upon bot boot
+    updateBotPresence();
+
+    // Loop running automatically every 60,000 milliseconds (1 Minute)
+    setInterval(() => {
+        updateBotPresence();
+    }, 60000);
+
+    function updateBotPresence() {
+        const currentStatus = statuses[currentIndex];
+        
+        // Alternates presence: Even indexes get 'dnd', Odd indexes get 'online'
+        const currentPresenceMode = (currentIndex % 2 === 0) ? 'dnd' : 'online';
+
+        client.user.setPresence({
+            activities: [{ name: currentStatus.text, type: currentStatus.type }],
+            status: currentPresenceMode
+        });
+
+        // Debugging confirmation log in your host console
+        console.log(`🔄 Presence updated: "${currentStatus.text}" [Mode: ${currentPresenceMode.toUpperCase()}]`);
+
+        // Move to the next status in the list, loop back to 0 if at the end
+        currentIndex = (currentIndex + 1) % statuses.length;
 
     // Sync all commands to Discord Application Gateway
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -309,7 +344,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const ticketEmbed = new EmbedBuilder()
                 .setTitle(`🎫 Ticket Created: ${ticketChannel.name}`)
-                .setDescription('Support staff will be with you shortly. To lock this interaction channel, click the button below.')
+                .setDescription('Support will be with you shortly. To lock this interaction channel, click the button below.')
                 .setColor(0x3498DB);
 
             const row = new ActionRowBuilder().addComponents(
