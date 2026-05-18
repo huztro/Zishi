@@ -18,6 +18,7 @@ const {
     ChannelType 
 } = require('discord.js');
 require('dotenv').config();
+const moderationCommandsList = require('./commands/moderation.js');
 
 // Initialize client with critical gateway scopes
 const client = new Client({
