@@ -99,13 +99,9 @@ register('status', 'Displays total architectural system statistics and performan
 // 3. Central Interactive Graphical Help Dashboard
 register('help', 'Returns a compiled interface catalog of operational features.', null, [], async (ctx) => {
     const embed = new EmbedBuilder()
-        .setTitle('⚙️ All-In-One Mainframe Control Interface')
-        .setDescription(`This system responds natively to both **Slash Commands (/)** and legacy text **Prefixes (${PREFIX})**.`)
+        .setTitle('⚙️ Help Menu')
+        .setDescription(`An Multipurpose Discord Bot | Prefix **.**.`)
         .setColor(0x3498DB)
-        .addFields(
-            { name: '🛡️ Core System Services', value: '`setup-verification` • `setup-tickets` • `status` • `ping` • `help` \n*(Triggers complex visual UI and server safeguards)*', inline: false },
-            { name: '🔨 Core 30 Enforcement & Moderation API Commands', value: '`kick` • `ban` • `unban` • `mute` • `unmute` • `timeout` • `warn` • `checkwarns` • `clearwarns` • `purge` • `lock` • `unlock` • `slowmode` • `nuke` • `softban` • `tempban` • `roleadd` • `roleremove` • `nick` • `warnremove` • `lockdown` • `unlockdown` • `channelcreate` • `channeldelete` • `roledel` • `rolecreate` • `serverinfo` • `whois` • `slowmodestop` • `clearinfractions`', inline: false },
-            { name: '🤖 Built-in Real-time AutoMod Defenses', value: 'Actively intercepts unauthorized external invites, link spam, malicious software keys, and configured terminology.', inline: false }
         );
     await ctx.reply({ embeds: [embed] });
 });
@@ -113,8 +109,15 @@ register('help', 'Returns a compiled interface catalog of operational features.'
 // 4. Setup Secure Captcha Gateway
 register('setup-verification', 'Spawns secure server verification interface.', [PermissionFlagsBits.Administrator], [], async (ctx) => {
     const embed = new EmbedBuilder()
-        .setTitle('🔒 Gatekeeper Identity Verification Required')
-        .setDescription('To safeguard this environment against automated malicious accounts, you must verify your client container identity.\n\nClick the button below to initiate an interactive CAPTCHA grid verification.')
+        .setTitle('🔒 Verification System')
+        .setDescription('✅ Click the button below to verify yourself and unlock:
+
+• 💬 Chat Access
+• 🎉 Full Server Features
+• 👥 Member Permissions
+• 🚀 Exclusive Channels
+
+⚠️ Verification is required to continue.')
         .setColor(0xE74C3C);
 
     const row = new ActionRowBuilder().addComponents(
@@ -127,12 +130,13 @@ register('setup-verification', 'Spawns secure server verification interface.', [
 // 5. Setup Ticketing Subsystem
 register('setup-tickets', 'Spawns transactional customer support ticket system routing panels.', [PermissionFlagsBits.Administrator], [], async (ctx) => {
     const embed = new EmbedBuilder()
-        .setTitle('🎫 Direct Support Dispatch Desk')
-        .setDescription('Need administrative or structural assistance? Open a direct channel to server operations by clicking below.')
+        .setTitle('🎫 Support System')
+        .setDescription('Click the button below to open a ticket with our support team.
+We will review your request and assist you as quickly as possible.')
         .setColor(0x2ECC71);
 
     const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('create_ticket_channel').setLabel('Open Private Support Ticket').setStyle(ButtonStyle.Primary).setEmoji('✉️')
+        new ButtonBuilder().setCustomId('create_ticket_channel').setLabel('Open Ticket').setStyle(ButtonStyle.Primary).setEmoji('✉️')
     );
     await ctx.reply({ content: 'Ticketing panel deployed successfully.', ephemeral: true });
     await ctx.channel.send({ embeds: [embed], components: [row] });
@@ -173,16 +177,6 @@ const mockModCommands = [
     { name: 'slowmodestop', desc: 'Resets channel transmission parameters back to immediate messaging.' },
     { name: 'clearinfractions', desc: 'Wipes the entire administrative log file for a given member.' }
 ];
-
-// Loop initialization to generate standard operational responses across all 30 mod configurations
-mockModCommands.forEach(cmd => {
-    register(cmd.name, cmd.desc, [PermissionFlagsBits.ModerateMembers], [{ name: 'target', description: 'Subject of action processing context.', type: 6, required: false }], async (ctx) => {
-        const user = ctx.options?.getUser('target') || ctx.mentions?.users?.first();
-        const actionMessage = user ? `Successfully processed action \`${cmd.name}\` targeting client identity **${user.tag}**.` : `Successfully executed operational tool context: \`${cmd.name}\` across local channel scope.`;
-        await ctx.reply({ content: `🛡️ **Admin Engine:** ${actionMessage}`, ephemeral: true });
-    });
-});
-
 // ==========================================
 // UNIFIED TRANSLATION PIPELINE BRIDGE
 // ==========================================
