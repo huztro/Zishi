@@ -33,7 +33,7 @@ const client = new Client({
     partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-const PREFIX = '!';
+const PREFIX = '.';
 const startTime = Date.now();
 
 // List of blacklisted terminology for the built-in global AutoMod safety engine
