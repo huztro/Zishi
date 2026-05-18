@@ -226,31 +226,50 @@ client.once('ready', async () => {
     ];
 
     let currentIndex = 0;
+    let presenceMode = 'dnd'; // Initial presence mode on boot
 
-    // Changes status instantly upon bot boot
-    updateBotPresence();
+    // Changes status text instantly upon bot boot
+    updateStatusText();
 
-    // Loop running automatically every 60,000 milliseconds (1 Minute)
+    // Rotate status text every 5,000 milliseconds (5 seconds)
     setInterval(() => {
-        updateBotPresence();
+        updateStatusText();
+    }, 5000);
+
+    // Toggle presence mode (dnd/online) every 60,000 milliseconds (1 minute)
+    setInterval(() => {
+        updatePresenceMode();
     }, 60000);
 
-    function updateBotPresence() {
+    // Updates only the status text activity, preserving the current presence mode
+    function updateStatusText() {
         const currentStatus = statuses[currentIndex];
-        
-        // Alternates presence: Even indexes get 'dnd', Odd indexes get 'online'
-        const currentPresenceMode = (currentIndex % 2 === 0) ? 'dnd' : 'online';
 
         client.user.setPresence({
             activities: [{ name: currentStatus.text, type: currentStatus.type }],
-            status: currentPresenceMode
+            status: presenceMode
         });
 
         // Debugging confirmation log in your host console
-        console.log(`🔄 Presence updated: "${currentStatus.text}" [Mode: ${currentPresenceMode.toUpperCase()}]`);
+        console.log(`📝 Status text updated: "${currentStatus.text}" [Mode: ${presenceMode.toUpperCase()}]`);
 
         // Move to the next status in the list, loop back to 0 if at the end
         currentIndex = (currentIndex + 1) % statuses.length;
+    }
+
+    // Toggles the presence mode between dnd and online every 1 minute
+    function updatePresenceMode() {
+        presenceMode = (presenceMode === 'dnd') ? 'online' : 'dnd';
+
+        // Re-apply presence with the updated mode and the current status text
+        const currentStatus = statuses[currentIndex];
+        client.user.setPresence({
+            activities: [{ name: currentStatus.text, type: currentStatus.type }],
+            status: presenceMode
+        });
+
+        // Debugging confirmation log in your host console
+        console.log(`🔁 Presence mode toggled: [Mode: ${presenceMode.toUpperCase()}]`);
     }
 
     // Sync all commands to Discord Application Gateway
