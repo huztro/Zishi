@@ -47,7 +47,7 @@ const commands = new Map();
 
 // Helper to define and attach command configurations uniformly
 function register(name, description, permissions, options, callback) {
-    commands.set(name, { name, description, permissions, options: options || [], run: callback });
+    commands.set(name, { name, description, permissions, options: options || [], run: callback, isNative: true });
 }
 
 /**
@@ -263,7 +263,6 @@ client.once('ready', async () => {
             status: presenceMode
         });
 
-        // Debugging confirmation log in your host console
         console.log(`... Status text updated: "${currentStatus.text}" [Mode: ${presenceMode.toUpperCase()}]`);
 
         // Move to the next status in the list, loop back to 0 if at the end
@@ -281,7 +280,6 @@ client.once('ready', async () => {
             status: presenceMode
         });
 
-        // Debugging confirmation log in your host console
         console.log(`🔄 Presence mode toggled: [Mode: ${presenceMode.toUpperCase()}]`);
     }
 
@@ -334,13 +332,13 @@ client.on('messageCreate', async (message) => {
         return message.reply('❌ You lack the administrative clearance permissions to invoke this asset.');
     }
 
-    // Run custom external array structures directly with context and args if available
-    if (typeof command.run === 'function' && !command.hasOwnProperty('name')) {
+    // ⭐ CRITICAL PIPELINE CORRECTION FIX: Detect if command belongs to moderation or application file arrays
+    if (!command.isNative) {
         try {
             return await command.run(message, args);
         } catch (err) {
             console.error(err);
-            return message.reply('❌ System dynamic layer execution failure.');
+            return message.reply('❌ System external modular layer execution failure.');
         }
     }
 
@@ -364,8 +362,8 @@ client.on('interactionCreate', async (interaction) => {
             return interaction.reply({ content: '❌ You lack the administrative clearance permissions to invoke this asset.', ephemeral: true });
         }
 
-        // Direct handling override routing interface built for arrays like applications.js
-        if (typeof command.run === 'function' && !command.hasOwnProperty('name')) {
+        // ⭐ CRITICAL PIPELINE CORRECTION FIX: Bypass UnifiedContext if executing non-native array files
+        if (!command.isNative) {
             try {
                 return await command.run(interaction, null);
             } catch (err) {
