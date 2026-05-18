@@ -102,8 +102,7 @@ register('help', 'Returns a compiled interface catalog of operational features.'
     const embed = new EmbedBuilder()
         .setTitle('⚙️ Help Menu')
         .setDescription(`An Multipurpose Discord Bot | Prefix **.**.`)
-        .setColor(0x3498DB)
-        );
+        .setColor(0x3498DB);
     await ctx.reply({ embeds: [embed] });
 });
 
@@ -111,16 +110,8 @@ register('help', 'Returns a compiled interface catalog of operational features.'
 register('setup-verification', 'Spawns secure server verification interface.', [PermissionFlagsBits.Administrator], [], async (ctx) => {
     const embed = new EmbedBuilder()
         .setTitle('🔒 Verification System')
-        .setDescription('✅ Click the button below to verify yourself and unlock:
-
-• 💬 Chat Access
-• 🎉 Full Server Features
-• 👥 Member Permissions
-• 🚀 Exclusive Channels
-
-⚠️ Verification is required to continue.')
+        .setDescription(`✅ Click the button below to verify yourself and unlock:\n\n• 💬 Chat Access\n• 🎉 Full Server Features\n• 👥 Member Permissions\n• 🚀 Exclusive Channels\n\n⚠️ Verification is required to continue.`)
         .setColor(0xE74C3C);
-
     const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('initiate_captcha').setLabel('Verify Identity').setStyle(ButtonStyle.Danger).setEmoji('🛡️')
     );
@@ -132,8 +123,7 @@ register('setup-verification', 'Spawns secure server verification interface.', [
 register('setup-tickets', 'Spawns transactional customer support ticket system routing panels.', [PermissionFlagsBits.Administrator], [], async (ctx) => {
     const embed = new EmbedBuilder()
         .setTitle('🎫 Support System')
-        .setDescription('Click the button below to open a ticket with our support team.
-We will review your request and assist you as quickly as possible.')
+        .setDescription(`Click the button below to open a ticket with our support team.\nWe will review your request and assist you as quickly as possible.`)
         .setColor(0x2ECC71);
 
     const row = new ActionRowBuilder().addComponents(
