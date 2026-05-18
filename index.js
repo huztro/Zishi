@@ -411,12 +411,12 @@ client.on('interactionCreate', async (interaction) => {
 
             if (userChoice === correctChoice) {
                 // Find a 'Verified' role in the server to assign to the user
-                const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'verified');
+                const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === '﹒⚔・Verified . ?');
                 if (verifiedRole) {
                     await interaction.member.roles.add(verifiedRole).catch(() => {});
                     await interaction.update({ content: '✅ **Verification Passed!** Your client container signature has been updated. Access granted.', embeds: [], components: [] });
                 } else {
-                    await interaction.update({ content: '⚠️ **Verification Passed!** However, no role named precisely `"Verified"` was detected on this server configuration.', embeds: [], components: [] });
+                    await interaction.update({ content: '⚠️ **Verification Passed!** However, no role named precisely `"﹒⚔・Verified . ?"` was detected on this server configuration.', embeds: [], components: [] });
                 }
             } else {
                 await interaction.update({ content: '❌ **Verification Failed.** Identity mismatch signature detected. Click "Verify Identity" to cycle a new validation grid sequence.', embeds: [], components: [] });
