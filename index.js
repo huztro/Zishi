@@ -251,6 +251,7 @@ client.once('ready', async () => {
 
         // Move to the next status in the list, loop back to 0 if at the end
         currentIndex = (currentIndex + 1) % statuses.length;
+    }
 
     // Sync all commands to Discord Application Gateway
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
