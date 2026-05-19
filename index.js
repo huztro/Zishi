@@ -439,7 +439,40 @@ client.on('interactionCreate', async (interaction) => {
             setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
         }
 
-        // SYSTEM 2: INTERACTIVE CAPTCHA VERIFICATION MATRIX ENGINE
+        // --- LIVE INTERACTIVE TICKETING ENTRANCE ---
+        if (interaction.customId === 'join_giveaway_pool') {
+            const db = JSON.parse(fs.readFileSync(path.join(__dirname, 'giveaways.json'), 'utf8'));
+            const gw = db[interaction.message.id];
+
+            if (!gw) {
+                return interaction.reply({ content: '❌ **Database Sync Error:** Configuration context lost.', ephemeral: true });
+            }
+            if (gw.ended) {
+                return interaction.reply({ content: '❌ This giveaway has already expired.', ephemeral: true });
+            }
+
+            // Check if the user is already registered in the drawing pool
+            if (gw.participants.includes(interaction.user.id)) {
+                return interaction.reply({ content: '⚠️ You have already secured an entry slot in this drawing!', ephemeral: true });
+            }
+
+            // Push player token signature inside data payload array
+            gw.participants.push(interaction.user.id);
+            db[interaction.message.id] = gw;
+            fs.writeFileSync(path.join(__dirname, 'giveaways.json'), JSON.stringify(db, null, 4));
+
+            // Dynamically update user total entry footprints in the live embed card frame
+            const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
+                .setFooter({ text: `Entries Counter: ${gw.participants.length} Users Registered` });
+
+            await interaction.update({ embeds: [updatedEmbed] });
+            return interaction.followUp({ content: '🎟️ **Entry Confirmed:** Your user signature has been added to the prize draw pool successfully.', ephemeral: true });
+        }
+        
+        // ... (Keep existing support tickets / captcha handlers beneath this)
+    }
+
+        // SYSTEM 3: INTERACTIVE CAPTCHA VERIFICATION MATRIX ENGINE
         if (interaction.customId === 'initiate_captcha') {
             const validSolution = Math.floor(Math.random() * 4) + 1; 
             
