@@ -18,8 +18,11 @@ const {
     ChannelType 
 } = require('discord.js');
 require('dotenv').config();
+
+// 📑 Import all separate module layers
 const moderationCommandsList = require('./commands/moderation.js');
 const applicationCommandsList = require('./commands/applications.js');
+const welcomeModule = require('./commands/welcome.js'); 
 
 // Initialize client with critical gateway scopes
 const client = new Client({
@@ -124,7 +127,7 @@ register('setup-verification', 'Spawns secure server verification interface.', [
 register('setup-tickets', 'Spawns transactional customer support ticket system routing panels.', [PermissionFlagsBits.Administrator], [], async (ctx) => {
     const embed = new EmbedBuilder()
         .setTitle('🎫 Support System')
-        .setDescription(`Click the button below to open a ticket with our support team.\nWe will review your request and assist you as quickly as possible.`)
+        .setDescription(`Click the button below to open a ticket with our support team.\n We will review your request and assist you as quickly as possible.`)
         .setColor(0x2ECC71);
 
     const row = new ActionRowBuilder().addComponents(
@@ -177,6 +180,9 @@ moderationCommandsList.forEach(cmd => {
 applicationCommandsList.forEach(cmd => {
     commands.set(cmd.name, cmd);
 });
+welcomeModule.commands.forEach(cmd => {
+    commands.set(cmd.name, cmd);
+});
 
 // ==========================================
 // UNIFIED TRANSLATION PIPELINE BRIDGE
@@ -220,6 +226,30 @@ class UnifiedContext {
 }
 
 // ==========================================
+// AUTOMATED GUILD MEMBER JOIN EVENT LISTENER
+// ==========================================
+client.on('guildMemberAdd', async (member) => {
+    const config = welcomeModule.welcomeDatabase.get(member.guild.id);
+    if (!config) return;
+
+    const channel = member.guild.channels.cache.get(config.channelId);
+    if (!channel) return;
+
+    const finalizedString = config.message
+        .replace(/{user}/g, `${member.user}`)
+        .replace(/{guild}/g, `${member.guild.name}`);
+
+    const welcomeEmbed = new EmbedBuilder()
+        .setTitle('✨ New Member Connection')
+        .setDescription(finalizedString)
+        .setColor(0x2ECC71)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
+
+    await channel.send({ content: `${member.user}`, embeds: [welcomeEmbed] }).catch(() => {});
+});
+
+// ==========================================
 // GATEWAY LISTENER INTERCEPTORS
 // ==========================================
 
@@ -231,30 +261,26 @@ client.once('ready', async () => {
     // 5 PREMIUM STATUS + DND / ONLINE ROTATOR
     // ==========================================
     const statuses = [
-        { text: 'Made By Huztro', type: 3 }, // Type 3 = Watching
-        { text: 'Ensuring Uptime Stability', type: 0 }, // Type 0 = Playing
-        { text: 'Optimizing Performance Modules', type: 2 }, // Type 2 = Listening to
+        { text: 'Made By Huztro', type: 3 }, 
+        { text: 'Ensuring Uptime Stability', type: 0 }, 
+        { text: 'Optimizing Performance Modules', type: 2 }, 
         { text: 'Executing System Diagnostics', type: 3 },
-        { text: 'Protecting Servers', type: 1 }  // Type 1 = Streaming
+        { text: 'Protecting Servers', type: 1 }  
     ];
 
     let currentIndex = 0;
-    let presenceMode = 'dnd'; // Initial presence mode on boot
+    let presenceMode = 'dnd'; 
 
-    // Changes status text instantly upon bot boot
     updateStatusText();
 
-    // Rotate status text every 5,000 milliseconds (5 seconds)
     setInterval(() => {
         updateStatusText();
     }, 5000);
 
-    // Toggle presence mode (dnd/online) every 60,000 milliseconds (1 minute)
     setInterval(() => {
         updatePresenceMode();
     }, 60000);
 
-    // Updates only the status text activity, preserving the current presence mode
     function updateStatusText() {
         const currentStatus = statuses[currentIndex];
 
@@ -263,17 +289,12 @@ client.once('ready', async () => {
             status: presenceMode
         });
 
-        console.log(`... Status text updated: "${currentStatus.text}" [Mode: ${presenceMode.toUpperCase()}]`);
-
-        // Move to the next status in the list, loop back to 0 if at the end
         currentIndex = (currentIndex + 1) % statuses.length;
     }
 
-    // Toggles the presence mode between dnd and online every 1 minute
     function updatePresenceMode() {
         presenceMode = (presenceMode === 'dnd') ? 'online' : 'dnd';
 
-        // Re-apply presence with the updated mode and the current status text
         const currentStatus = statuses[currentIndex];
         client.user.setPresence({
             activities: [{ name: currentStatus.text, type: currentStatus.type }],
@@ -332,7 +353,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('❌ You lack the administrative clearance permissions to invoke this asset.');
     }
 
-    // ⭐ CRITICAL PIPELINE CORRECTION FIX: Detect if command belongs to moderation or application file arrays
+    // Direct routing check for raw array handlers (applications.js and welcome.js arrays)
     if (!command.isNative) {
         try {
             return await command.run(message, args);
@@ -362,7 +383,7 @@ client.on('interactionCreate', async (interaction) => {
             return interaction.reply({ content: '❌ You lack the administrative clearance permissions to invoke this asset.', ephemeral: true });
         }
 
-        // ⭐ CRITICAL PIPELINE CORRECTION FIX: Bypass UnifiedContext if executing non-native array files
+        // Direct routing check for raw array handlers
         if (!command.isNative) {
             try {
                 return await command.run(interaction, null);
@@ -418,7 +439,6 @@ client.on('interactionCreate', async (interaction) => {
 
         // SYSTEM 2: INTERACTIVE CAPTCHA VERIFICATION MATRIX ENGINE
         if (interaction.customId === 'initiate_captcha') {
-            // Generate a dynamic, randomized option grid
             const validSolution = Math.floor(Math.random() * 4) + 1; 
             
             const captchaEmbed = new EmbedBuilder()
@@ -446,7 +466,6 @@ client.on('interactionCreate', async (interaction) => {
             const correctChoice = parts[3];
 
             if (userChoice === correctChoice) {
-                // Find a 'Verified' role in the server to assign to the user
                 const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === '﹒⚔・Verified . ?');
                 if (verifiedRole) {
                     await interaction.member.roles.add(verifiedRole).catch(() => {});
