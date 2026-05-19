@@ -25,6 +25,7 @@ const applicationCommandsList = require('./commands/applications.js');
 const welcomeModule = require('./commands/welcome.js'); 
 const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
+const funCommandsList = require('./commands/fun.js');
 
 // Initialize client with critical gateway scopes
 const client = new Client({
@@ -183,6 +184,9 @@ applicationCommandsList.forEach(cmd => {
     commands.set(cmd.name, cmd);
 });
 welcomeModule.commands.forEach(cmd => {
+    commands.set(cmd.name, cmd);
+});
+funCommandsList.forEach(cmd => {
     commands.set(cmd.name, cmd);
 });
 
