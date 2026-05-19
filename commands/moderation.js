@@ -90,7 +90,7 @@ module.exports = [
 
             await context.guild.members.ban(user.id, { reason });
             
-            const embed = createPremiumEmbed('Terminated Entry', context.member.user)
+            const embed = createPremiumEmbed('Banned user', context.member.user)
                 .addFields(
                     { name: '👤 Blacklisted Target', value: `> **User:** ${user}\n> **Tag:** \`${user.tag}\`\n> **ID:** \`${user.id}\``, inline: false },
                     { name: '🔨 Ban Parameters', value: `> **Action:** \`PERMANENT_BAN\`\n> **Reason:** \`${reason}\``, inline: false }
