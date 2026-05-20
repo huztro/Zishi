@@ -17,6 +17,8 @@ const {
     Routes, 
     ChannelType 
 } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 // 📑 Import all separate module layers
@@ -186,6 +188,12 @@ applicationCommandsList.forEach(cmd => {
 welcomeModule.commands.forEach(cmd => {
     commands.set(cmd.name, cmd);
 });
+economyModule.commands.forEach(cmd => {
+    commands.set(cmd.name, cmd);
+});
+giveawayModule.commands.forEach(cmd => {
+    commands.set(cmd.name, cmd);
+});
 funCommandsList.forEach(cmd => {
     commands.set(cmd.name, cmd);
 });
@@ -262,6 +270,9 @@ client.on('guildMemberAdd', async (member) => {
 // Global Lifecycle Initializer & Interactive Sync Engine
 client.once('ready', async () => {
     console.log(`🚀 System Engine initialized as: ${client.user.tag}`);
+
+    // Initialize giveaway expiry tracker
+    giveawayModule.initializeGiveawayTrackers(client);
     
     // ==========================================
     // 5 PREMIUM STATUS + DND / ONLINE ROTATOR
@@ -473,9 +484,6 @@ client.on('interactionCreate', async (interaction) => {
             return interaction.followUp({ content: '🎟️ **Entry Confirmed:** Your user signature has been added to the prize draw pool successfully.', ephemeral: true });
         }
         
-        // ... (Keep existing support tickets / captcha handlers beneath this)
-    }
-
         // SYSTEM 3: INTERACTIVE CAPTCHA VERIFICATION MATRIX ENGINE
         if (interaction.customId === 'initiate_captcha') {
             const validSolution = Math.floor(Math.random() * 4) + 1; 
