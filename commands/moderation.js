@@ -644,5 +644,78 @@ module.exports = [
         );
 
         return context.channel.delete();
+
+        module.exports = [
+{
+    name: 'embed',
+    description: 'Sends a custom embed message.',
+    permissions: [],
+
+    options: [
+        {
+            name: 'color',
+            description: 'Hex color (e.g. #ff0000)',
+            type: ApplicationCommandOptionType.String,
+            required: true
+        },
+        {
+            name: 'title',
+            description: 'Embed title',
+            type: ApplicationCommandOptionType.String,
+            required: true
+        },
+        {
+            name: 'description',
+            description: 'Embed description',
+            type: ApplicationCommandOptionType.String,
+            required: true
+        }
+    ],
+
+    async run(context, args) {
+        const isSlash = context.isCommand?.();
+        const author = isSlash ? context.user : context.author;
+
+        let color, title, description;
+
+        if (isSlash) {
+            color = context.options.getString('color');
+            title = context.options.getString('title');
+            description = context.options.getString('description');
+        } else {
+            if (!args || args.length === 0) {
+                return context.reply('❌ Use: `.embed <color> | <title> | <description>`');
+            }
+
+            color = args[0];
+
+            const parts = args.slice(1).join(' ').split('|');
+            title = parts[0]?.trim();
+            description = parts[1]?.trim();
+        }
+
+        if (!color || !title || !description) {
+            return context.reply('❌ Missing fields. Format: `.embed <color> | <title> | <description>`');
+        }
+
+        let resolvedColor = parseInt(color.replace('#', ''), 16);
+        if (isNaN(resolvedColor)) resolvedColor = 0x1A1C1E;
+
+        const embed = new EmbedBuilder()
+            .setTitle(title)
+            .setDescription(description)
+            .setColor(resolvedColor)
+            .setFooter({
+                text: `Created by ${author.username}`,
+                iconURL: author.displayAvatarURL({ size: 256 })
+            })
+            .setTimestamp();
+
+        return isSlash
+            ? context.reply({ embeds: [embed] })
+            : context.channel.send({ embeds: [embed] });
+    }
+}
+];
     }
 }
