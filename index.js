@@ -490,6 +490,18 @@ client.on('messageCreate', async (message) => {
         }
     }
 
+    // =========================
+    // NORMAL PREFIX FLOW (UNCHANGED)
+    // =========================
+    if (!content.startsWith(PREFIX)) return;
+
+    const args = content.slice(PREFIX.length).trim().split(/ +/);
+    const cmd = args.shift().toLowerCase();
+
+    // now your existing command system works 100% unchanged
+    return handleCommand(message, cmd, args);
+   } 
+
     // Real-Time Inline AutoMod Engine Interceptor Matrix
     const messageContentLower = message.content.toLowerCase();
     const triggerFound = BANNED_WORDS.some(word => messageContentLower.includes(word));
