@@ -745,7 +745,8 @@ module.exports = [
             .setTimestamp();
 
         return isSlash
-            ? context.reply({ embeds: [embed] })
-            : context.channel.send({ embeds: [embed] });
-            }
-            };  
+    ? context.reply({ embeds: [embed] })
+    : context.channel.send({ embeds: [embed] });
+    }
+}
+];
