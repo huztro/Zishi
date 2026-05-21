@@ -110,7 +110,7 @@ register('status', 'Displays total architectural system statistics and performan
 });
 
 // 3. Central Interactive Graphical Help Dashboard
-register('help', 'Returns a compiled interface catalog of operational features.', null, [], async (ctx) => {
+register('helppp', 'Returns a compiled interface catalog of operational features.', null, [], async (ctx) => {
     const embed = new EmbedBuilder()
         .setTitle('⚙️ Help Menu')
         .setDescription(`An Multipurpose Discord Bot | Prefix **.**.`)
