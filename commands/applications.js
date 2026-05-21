@@ -16,7 +16,9 @@ const {
 } = require('discord.js');
 
 // Runtime DB
-const applicationsTemplates = new Map();
+global.applicationsTemplates = global.applicationsTemplates || new Map();
+
+const applicationsTemplates = global.applicationsTemplates;
 const activeCollectorUsers = new Set();
 
 module.exports = [
