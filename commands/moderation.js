@@ -119,6 +119,36 @@ module.exports = [
             return context.isCommand?.() ? context.reply({ embeds: [embed] }) : context.channel.send({ embeds: [embed] });
         }
     },
+    // 3. SETPREFIX
+    {
+        name: 'setprefix',
+        description: 'Changes server command prefix.',
+        permissions: [PermissionFlagsBits.Administrator],
+        options: [
+        { name: 'prefix', description: 'New server prefix', type: 3, required: true }
+],
+
+async run(context, args) {
+
+    const prefix = context.isCommand?.()
+        ? context.options.getString('prefix')
+        : args[0];
+
+    if (!prefix) {
+        return context.reply({
+            content: '❌ Missing prefix. Usage: `setprefix !`',
+            ephemeral: true
+        });
+    }
+
+    // store in memory (resets on restart)
+    if (!global.prefixes) global.prefixes = {};
+    global.prefixes[context.guild.id] = prefix;
+
+    return context.reply({
+        content: `✅ Prefix updated to **${prefix}**`
+    });
+}
 
     // 4. TIMEOUT
     {
