@@ -66,8 +66,8 @@ module.exports = {
                     .setColor(0x00FFCC)
                     .addFields(
                         { name: '💵 Wallet Cash', value: `\`$${profile.wallet.toLocaleString()}\``, inline: true },
-                        { name: '🏦 Safe Deposit Bank', value: `\`$${profile.bank.toLocaleString()}\` / \`$${profile.bankSpace.toLocaleString()}\``, inline: true },
-                        { name: '📊 Cumulative Wealth Net Worth', value: `\`$${(profile.wallet + profile.bank).toLocaleString()}\``, inline: false }
+                        { name: '🏦 Bank', value: `\`$${profile.bank.toLocaleString()}\` / \`$${profile.bankSpace.toLocaleString()}\``, inline: true },
+                        { name: '📊 Total', value: `\`$${(profile.wallet + profile.bank).toLocaleString()}\``, inline: false }
                     ).setTimestamp();
                 return isSlash ? context.reply({ embeds: [embed] }) : context.channel.send({ embeds: [embed] });
             }
