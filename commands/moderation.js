@@ -121,6 +121,7 @@ module.exports = [
     },
     // 3. SETPREFIX
     {
+    module.exports = {
         name: 'setprefix',
         description: 'Changes server command prefix.',
         permissions: [PermissionFlagsBits.Administrator],
