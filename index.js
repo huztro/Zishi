@@ -577,7 +577,6 @@ client.on('interactionCreate', async (interaction) => {
             });
         }
     }
-});
 
     // Process UI interaction events (Ticketing and Verification systems)
     if (interaction.isButton()) {
