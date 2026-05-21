@@ -478,73 +478,68 @@ client.once('ready', async () => {
 client.on('messageCreate', async (message) => {
     if (message.author.bot || !message.guild) return;
 
+    const isOwner = message.author.id === OWNER_ID;
+    let content = message.content;
+
     // =========================
     // OWNER NO-PREFIX SUPPORT
     // =========================
-    if (isOwner) {
-        const noPrefixCommands = content.split(" ")[0];
-
-        // If message does NOT start with prefix, auto add it
-        if (!content.startsWith(PREFIX)) {
-            content = PREFIX + content;
-        }
+    if (isOwner && !content.startsWith(PREFIX)) {
+        content = PREFIX + content;
     }
 
     // =========================
-    // NORMAL PREFIX FLOW (UNCHANGED)
+    // AUTO MOD ENGINE
     // =========================
-    if (!content.startsWith(PREFIX)) return;
-
-    const args = content.slice(PREFIX.length).trim().split(/ +/);
-    const cmd = args.shift().toLowerCase();
-
-    // now your existing command system works 100% unchanged
-    return handleCommand(message, cmd, args);
-   } 
-
-    // Real-Time Inline AutoMod Engine Interceptor Matrix
     const messageContentLower = message.content.toLowerCase();
-    const triggerFound = BANNED_WORDS.some(word => messageContentLower.includes(word));
-    
+    const triggerFound = BANNED_WORDS.some(word =>
+        messageContentLower.includes(word)
+    );
+
     if (triggerFound && !message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
         await message.delete().catch(() => {});
-        const alertMsg = await message.channel.send(`⚠️ **AutoMod Intercept:** ${message.author}, your transmission contained restricted terms. Filter applied.`);
+        const alertMsg = await message.channel.send(
+            `⚠️ **AutoMod Intercept:** ${message.author}, your transmission contained restricted terms. Filter applied.`
+        );
         setTimeout(() => alertMsg.delete().catch(() => {}), 5000);
         return;
     }
 
-    if (!message.content.startsWith(PREFIX)) return;
+    // =========================
+    // PREFIX CHECK
+    // =========================
+    if (!content.startsWith(PREFIX)) return;
 
-    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const args = content.slice(PREFIX.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
     const command = commands.get(commandName);
     if (!command) return;
 
-    // Check configuration access controls
+    // =========================
+    // PERMISSION CHECK
+    // =========================
     if (command.permissions && !message.member.permissions.has(command.permissions)) {
         return message.reply('❌ You lack the administrative clearance permissions to invoke this asset.');
     }
 
-    // Direct routing check for raw array handlers (applications.js and welcome.js arrays)
-    if (!command.isNative) {
-        try {
-            return await command.run(message, args);
-        } catch (err) {
-            console.error(err);
-            return message.reply('❌ System external modular layer execution failure.');
-        }
-    }
+    // =========================
+    // RUN COMMAND (TWO SYSTEMS SUPPORTED)
+    // =========================
 
-    const context = new UnifiedContext(message, client);
     try {
-        await command.run(context);
+        if (!command.isNative) {
+            return await command.run(message, args);
+        }
+
+        const context = new UnifiedContext(message, client);
+        return await command.run(context);
+
     } catch (err) {
         console.error(err);
-        await message.reply('❌ System runtime execution pipeline failure.');
+        return message.reply('❌ System runtime execution failure.');
     }
 });
-
 // ==========================================================
 // INTERACTION CORE GATEWAY LISTENER
 // SLASH COMMANDS + BUTTONS + MODALS
