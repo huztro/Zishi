@@ -259,10 +259,10 @@ module.exports = [
             if (!cleared) return context.reply({ content: '❌ Error: Cannot bulk delete messages past 14 days old.', ephemeral: true });
 
             const execUser = context.isCommand?.() ? context.user : context.author;
-            const embed = createPremiumEmbed('Data Purge Executed', execUser)
+            const embed = createPremiumEmbed('Purged', execUser)
                 .addFields(
                     { name: '💎 Messages Cleared', value: `> Deleted \`${cleared.size}\` messages`, inline: true },
-                    { name: '📍 Source Node', value: `> Channel: ${targetChannel}`, inline: true }
+                    { name: '📍 Channel', value: `> Channel: ${targetChannel}`, inline: true }
                 );
             
             if (context.isCommand?.()) {
