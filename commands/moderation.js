@@ -119,9 +119,9 @@ module.exports = [
             return context.isCommand?.() ? context.reply({ embeds: [embed] }) : context.channel.send({ embeds: [embed] });
         }
     },
+    
     // 3. SETPREFIX
     {
-    module.exports = {
         name: 'setprefix',
         description: 'Changes server command prefix.',
         permissions: [PermissionFlagsBits.Administrator],
@@ -148,8 +148,8 @@ async run(context, args) {
 
     return context.reply({
         content: `✅ Prefix updated to **${prefix}**`
-    });
-}
+       } 
+   },
 
     // 4. TIMEOUT
     {
