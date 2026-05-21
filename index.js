@@ -820,7 +820,7 @@ client.on('interactionCreate', async (interaction) => {
             const correctChoice = parts[3];
 
             if (userChoice === correctChoice) {
-                const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === '﹒⚔・Verified . ?');
+                const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'verified');
                 if (verifiedRole) {
                     await interaction.member.roles.add(verifiedRole).catch(() => {});
                     await interaction.update({ content: '... **Verification Passed!** Your client container signature has been updated. Access granted.', embeds: [], components: [] });
