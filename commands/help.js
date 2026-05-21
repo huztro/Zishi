@@ -54,7 +54,7 @@ module.exports = {
                             { name: 'ℹ️ Description', value: `\`${targetCommand.description}\``, inline: false },
                             { name: '🧬 Clearance Permissions Required', value: `\`${targetCommand.permissions ? 'Admin / Staff Only' : 'Everyone'}\``, inline: true }
                         )
-                        .setFooter({ text: 'Nexora | Registry Matrix' })
+                        .setFooter({ text: 'Zishi | Bot Help' })
                         .setTimestamp();
 
                     return isSlash ? context.reply({ embeds: [detailEmbed] }) : context.channel.send({ embeds: [detailEmbed] });
