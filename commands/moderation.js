@@ -8,14 +8,15 @@ const { EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js')
 // ==========================================
 // CENTRAL PREMIUM EMBED CORES
 // ==========================================
-function createPremiumEmbed(title, executioner) {
+function createPremiumEmbed(title, description = '', executioner) {
     return new EmbedBuilder()
         .setTitle(`🔹 ${title}`)
-        .setColor(0x1A1C1E) // Fondo oscuro ultra premium estilo Nexora
-        .setThumbnail('https://i.postimg.cc/d3zdwyjL/OIP.webp') // Puedes cambiar esto por el logo de tu bot
-        .setFooter({ 
-            text: `Action taken by ${executioner.username}`, 
-            iconURL: executioner.displayAvatarURL({ dynamic: true }) 
+        .setDescription(description)
+        .setColor(0x1A1C1E)
+        .setThumbnail('https://i.postimg.cc/d3zdwyjL/OIP.webp')
+        .setFooter({
+            text: `Action taken by ${executioner.username}`,
+            iconURL: executioner.displayAvatarURL({ size: 256 })
         })
         .setTimestamp();
 }
