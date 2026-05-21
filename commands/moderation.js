@@ -601,12 +601,12 @@ module.exports = [
         }
     },
 
-// 25. ROLE CREATE
-{
-    name: 'rolecreate',
-    description: 'Generates a blank base role layout frame.',
-    permissions: [PermissionFlagsBits.ManageRoles],
-    options: [
+    // 25. ROLE CREATE
+    {
+        name: 'rolecreate',
+        description: 'Generates a blank base role layout frame.',
+        permissions: [PermissionFlagsBits.ManageRoles],
+        options: [
         {
             name: 'name',
             description: 'Label title string for the new role layout asset',
@@ -748,4 +748,4 @@ module.exports = [
             ? context.reply({ embeds: [embed] })
             : context.channel.send({ embeds: [embed] });
             }
-};
+            };  
