@@ -405,19 +405,18 @@ client.on('interactionCreate', async (interaction) => {
         const command = commands.get(interaction.commandName);
         if (!command) return;
 
-        // Verify Slash Command Permission Sets
+        // Permissions
         if (
             command.permissions &&
             !interaction.member.permissions.has(command.permissions)
         ) {
             return interaction.reply({
-                content:
-                    '❌ You lack the administrative clearance permissions to invoke this asset.',
+                content: '❌ No permission.',
                 ephemeral: true
             });
         }
 
-        // Direct routing check for raw array handlers
+        // Raw handler
         if (!command.isNative) {
             try {
                 return await command.run(interaction, null);
@@ -425,13 +424,13 @@ client.on('interactionCreate', async (interaction) => {
                 console.error(err);
 
                 return interaction.reply({
-                    content:
-                        '❌ System external layer execution failure.',
+                    content: '❌ Command failed.',
                     ephemeral: true
                 });
             }
         }
 
+        // Unified Context
         const context = new UnifiedContext(interaction, client);
 
         try {
@@ -444,54 +443,48 @@ client.on('interactionCreate', async (interaction) => {
 
             if (!interaction.replied) {
                 await interaction.reply({
-                    content:
-                        '❌ System slash execution exception.',
+                    content: '❌ Slash execution failed.',
                     ephemeral: true
                 });
             }
         }
-
-        return;
     }
 
     // ======================================================
-    // APPLICATION BUTTON SYSTEM
+    // BUTTONS
     // ======================================================
 
-    if (interaction.isButton()) {
+    else if (interaction.isButton()) {
 
-        // APPLY BUTTON
         if (interaction.customId.startsWith('apply_')) {
 
-            const appID = interaction.customId.split('_')[1];
+            const appID =
+                interaction.customId.split('_')[1];
 
-            const template = applicationsTemplates.get(appID);
+            const template =
+                applicationsTemplates.get(appID);
 
             if (!template) {
                 return interaction.reply({
-                    content:
-                        '❌ This application template no longer exists.',
+                    content: '❌ Application missing.',
                     ephemeral: true
                 });
             }
 
-            // CREATE MODAL
             const modal = new ModalBuilder()
                 .setCustomId(`staff_apply_${appID}`)
                 .setTitle(template.title);
 
-            // ADD QUESTIONS
             template.questions.forEach((question, index) => {
 
                 const input = new TextInputBuilder()
                     .setCustomId(`question_${index}`)
                     .setLabel(question.substring(0, 45))
                     .setStyle(TextInputStyle.Paragraph)
-                    .setRequired(true)
-                    .setMaxLength(1000);
+                    .setRequired(true);
 
-                const row = new ActionRowBuilder()
-                    .addComponents(input);
+                const row =
+                    new ActionRowBuilder().addComponents(input);
 
                 modal.addComponents(row);
             });
@@ -501,47 +494,44 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     // ======================================================
-    // APPLICATION MODAL SUBMIT
+    // MODALS
     // ======================================================
 
-    if (interaction.isModalSubmit()) {
+    else if (interaction.isModalSubmit()) {
 
-        if (interaction.customId.startsWith('staff_apply_')) {
+        if (
+            interaction.customId.startsWith(
+                'staff_apply_'
+            )
+        ) {
 
-            const appID = interaction.customId.split('_')[2];
+            const appID =
+                interaction.customId.split('_')[2];
 
-            const template = applicationsTemplates.get(appID);
+            const template =
+                applicationsTemplates.get(appID);
 
             if (!template) {
                 return interaction.reply({
-                    content:
-                        '❌ Application template could not be located.',
+                    content: '❌ Template missing.',
                     ephemeral: true
                 });
             }
 
-            // ==============================================
-            // COLLECT ANSWERS
-            // ==============================================
-
-            let formattedAnswers = '';
+            let answers = '';
 
             template.questions.forEach((question, index) => {
 
-                const answer =
+                const response =
                     interaction.fields.getTextInputValue(
                         `question_${index}`
                     );
 
-                formattedAnswers +=
-                    `## ${question}\n${answer}\n\n`;
+                answers +=
+                    `**${question}**\n${response}\n\n`;
             });
 
-            // ==============================================
-            // APPLICATION CHANNEL
-            // ==============================================
-
-            // CHANGE THIS CHANNEL ID
+            // CHANGE THIS
             const applicationChannel =
                 interaction.guild.channels.cache.get(
                     '1500169351549026475'
@@ -550,58 +540,36 @@ client.on('interactionCreate', async (interaction) => {
             if (!applicationChannel) {
                 return interaction.reply({
                     content:
-                        '❌ Staff application channel not found.',
+                        '❌ Application channel missing.',
                     ephemeral: true
                 });
             }
 
-            // ==============================================
-            // RESULT EMBED
-            // ==============================================
-
             const embed = new EmbedBuilder()
-                .setColor(0x1A1C1E)
+                .setColor('#111111')
                 .setTitle('📨 New Staff Application')
-                .setDescription(formattedAnswers)
+                .setDescription(answers)
                 .addFields(
                     {
-                        name: '👤 Applicant',
-                        value: `${interaction.user.tag}`,
+                        name: '👤 User',
+                        value: interaction.user.tag,
                         inline: true
                     },
                     {
-                        name: '🆔 User ID',
+                        name: '🆔 ID',
                         value: interaction.user.id,
-                        inline: true
-                    },
-                    {
-                        name: '📋 Application',
-                        value: template.title,
                         inline: true
                     }
                 )
-                .setThumbnail(
-                    interaction.user.displayAvatarURL({
-                        dynamic: true
-                    })
-                )
-                .setFooter({
-                    text:
-                        `${interaction.guild.name} • Staff Applications`
-                })
                 .setTimestamp();
 
             await applicationChannel.send({
                 embeds: [embed]
             });
 
-            // ==============================================
-            // SUCCESS REPLY
-            // ==============================================
-
             return interaction.reply({
                 content:
-                    '✅ Your application has been submitted successfully.',
+                    '✅ Application submitted successfully.',
                 ephemeral: true
             });
         }
