@@ -44,17 +44,16 @@ function updateProfile(userId, profile) {
 
 // Global Virtual Item Registry Shop Manifest
 const SHOP_ITEMS = {
-    laptop: { name: '💻 High-End Laptop', price: 1500, desc: 'Increases income potential from writing scripts or hacking.' },
-    shield: { name: '🛡️ Kinetic Shield', price: 3000, desc: 'Protects your wallet from 1 attempted robbery.' },
-    vault: { name: '🗄️ Titanium Vault Upgrade', price: 5000, desc: 'Permanently adds +5,000 to your max bank space capacity.' },
-    ring: { name: '👑 Royal Signet Ring', price: 25000, desc: 'A purely luxurious token indicating absolute wealth status.' }
+    villainrole: { name: 'Villain Role', price: 10000, desc: 'After Getting Villain Role You Become The True Member Of The Server' },
+    viprole: { name: 'Vip Role', price: 30000, desc: 'After Getting Vip Role You Get Access To Vip Futures' },
+    ecomastery: { name: 'Zishi Eco Mastery Role', price: 50000, desc: 'After Getting Eco Mastery Role You Get Double Daily Coins & Weekly Eco Also' }
 };
 
 module.exports = {
     commands: [
         // 1. BALANCE
         {
-            name: 'balance',
+            name: 'bal',
             description: 'Check your current wallet cash reserves and bank account balances.',
             options: [{ name: 'user', description: 'Target user identity profile', type: 6, required: false }],
             async run(context) {
