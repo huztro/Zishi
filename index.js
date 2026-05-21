@@ -389,15 +389,32 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// Interaction Core Gateway Listener (Slash Commands & UI Operations)
+// ==========================================================
+// INTERACTION CORE GATEWAY LISTENER
+// SLASH COMMANDS + BUTTONS + MODALS
+// ==========================================================
+
 client.on('interactionCreate', async (interaction) => {
+
+    // ======================================================
+    // SLASH COMMANDS
+    // ======================================================
+
     if (interaction.isChatInputCommand()) {
+
         const command = commands.get(interaction.commandName);
         if (!command) return;
 
         // Verify Slash Command Permission Sets
-        if (command.permissions && !interaction.member.permissions.has(command.permissions)) {
-            return interaction.reply({ content: '❌ You lack the administrative clearance permissions to invoke this asset.', ephemeral: true });
+        if (
+            command.permissions &&
+            !interaction.member.permissions.has(command.permissions)
+        ) {
+            return interaction.reply({
+                content:
+                    '❌ You lack the administrative clearance permissions to invoke this asset.',
+                ephemeral: true
+            });
         }
 
         // Direct routing check for raw array handlers
@@ -406,19 +423,190 @@ client.on('interactionCreate', async (interaction) => {
                 return await command.run(interaction, null);
             } catch (err) {
                 console.error(err);
-                return interaction.reply({ content: '❌ System external layer execution failure.', ephemeral: true });
+
+                return interaction.reply({
+                    content:
+                        '❌ System external layer execution failure.',
+                    ephemeral: true
+                });
             }
         }
 
         const context = new UnifiedContext(interaction, client);
+
         try {
+
             await command.run(context);
+
         } catch (err) {
+
             console.error(err);
-            await interaction.reply({ content: '❌ System slash execution exception.', ephemeral: true });
+
+            if (!interaction.replied) {
+                await interaction.reply({
+                    content:
+                        '❌ System slash execution exception.',
+                    ephemeral: true
+                });
+            }
         }
+
         return;
     }
+
+    // ======================================================
+    // APPLICATION BUTTON SYSTEM
+    // ======================================================
+
+    if (interaction.isButton()) {
+
+        // APPLY BUTTON
+        if (interaction.customId.startsWith('apply_')) {
+
+            const appID = interaction.customId.split('_')[1];
+
+            const template = applicationsTemplates.get(appID);
+
+            if (!template) {
+                return interaction.reply({
+                    content:
+                        '❌ This application template no longer exists.',
+                    ephemeral: true
+                });
+            }
+
+            // CREATE MODAL
+            const modal = new ModalBuilder()
+                .setCustomId(`staff_apply_${appID}`)
+                .setTitle(template.title);
+
+            // ADD QUESTIONS
+            template.questions.forEach((question, index) => {
+
+                const input = new TextInputBuilder()
+                    .setCustomId(`question_${index}`)
+                    .setLabel(question.substring(0, 45))
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setRequired(true)
+                    .setMaxLength(1000);
+
+                const row = new ActionRowBuilder()
+                    .addComponents(input);
+
+                modal.addComponents(row);
+            });
+
+            return interaction.showModal(modal);
+        }
+    }
+
+    // ======================================================
+    // APPLICATION MODAL SUBMIT
+    // ======================================================
+
+    if (interaction.isModalSubmit()) {
+
+        if (interaction.customId.startsWith('staff_apply_')) {
+
+            const appID = interaction.customId.split('_')[2];
+
+            const template = applicationsTemplates.get(appID);
+
+            if (!template) {
+                return interaction.reply({
+                    content:
+                        '❌ Application template could not be located.',
+                    ephemeral: true
+                });
+            }
+
+            // ==============================================
+            // COLLECT ANSWERS
+            // ==============================================
+
+            let formattedAnswers = '';
+
+            template.questions.forEach((question, index) => {
+
+                const answer =
+                    interaction.fields.getTextInputValue(
+                        `question_${index}`
+                    );
+
+                formattedAnswers +=
+                    `## ${question}\n${answer}\n\n`;
+            });
+
+            // ==============================================
+            // APPLICATION CHANNEL
+            // ==============================================
+
+            // CHANGE THIS CHANNEL ID
+            const applicationChannel =
+                interaction.guild.channels.cache.get(
+                    '1500169351549026475'
+                );
+
+            if (!applicationChannel) {
+                return interaction.reply({
+                    content:
+                        '❌ Staff application channel not found.',
+                    ephemeral: true
+                });
+            }
+
+            // ==============================================
+            // RESULT EMBED
+            // ==============================================
+
+            const embed = new EmbedBuilder()
+                .setColor(0x1A1C1E)
+                .setTitle('📨 New Staff Application')
+                .setDescription(formattedAnswers)
+                .addFields(
+                    {
+                        name: '👤 Applicant',
+                        value: `${interaction.user.tag}`,
+                        inline: true
+                    },
+                    {
+                        name: '🆔 User ID',
+                        value: interaction.user.id,
+                        inline: true
+                    },
+                    {
+                        name: '📋 Application',
+                        value: template.title,
+                        inline: true
+                    }
+                )
+                .setThumbnail(
+                    interaction.user.displayAvatarURL({
+                        dynamic: true
+                    })
+                )
+                .setFooter({
+                    text:
+                        `${interaction.guild.name} • Staff Applications`
+                })
+                .setTimestamp();
+
+            await applicationChannel.send({
+                embeds: [embed]
+            });
+
+            // ==============================================
+            // SUCCESS REPLY
+            // ==============================================
+
+            return interaction.reply({
+                content:
+                    '✅ Your application has been submitted successfully.',
+                ephemeral: true
+            });
+        }
+    }
+});
 
     // Process UI interaction events (Ticketing and Verification systems)
     if (interaction.isButton()) {
