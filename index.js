@@ -478,6 +478,18 @@ client.once('ready', async () => {
 client.on('messageCreate', async (message) => {
     if (message.author.bot || !message.guild) return;
 
+    // =========================
+    // OWNER NO-PREFIX SUPPORT
+    // =========================
+    if (isOwner) {
+        const noPrefixCommands = content.split(" ")[0];
+
+        // If message does NOT start with prefix, auto add it
+        if (!content.startsWith(PREFIX)) {
+            content = PREFIX + content;
+        }
+    }
+
     // Real-Time Inline AutoMod Engine Interceptor Matrix
     const messageContentLower = message.content.toLowerCase();
     const triggerFound = BANNED_WORDS.some(word => messageContentLower.includes(word));
