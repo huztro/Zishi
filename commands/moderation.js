@@ -601,24 +601,55 @@ module.exports = [
         }
     },
 
-    // 25. ROLE CREATE
-    {
-        name: 'rolecreate',
-        description: 'Generates a blank base role layout frame.',
-        permissions: [PermissionFlagsBits.ManageRoles],
-        options: [{ name: 'name', description: 'Label title string for the new role layout asset', type: 3, required: true }],
-        async run(context, args) {
-            const labelTitle = context.isCommand?.() ? context.options.getString('name') : args.join(' ');
-            if (!labelTitle) return context.reply({ content: '❌ Title configuration definition parameters blank.', ephemeral: true });
-
-            const spawnedRole = await context.guild.roles.create({ name: labelTitle, color: 0x5865F2 });
-            const execUser = context.isCommand?.() ? context.user : context.author;
-            const embed = createPremiumEmbed('Security Role Generated', execUser)
-                .addFields({ name: '🎨 New Role Blueprint', value: `> **Role Entity:** ${spawnedRole}\n> **Label Tag:** \`${spawnedRole.name}\`\n> **ID Mapping:** \`${spawnedRole.id}\``, inline: false });
-
-            return context.isCommand?.() ? context.reply({ embeds: [embed] }) : context.channel.send({ embeds: [embed] });
+// 25. ROLE CREATE
+{
+    name: 'rolecreate',
+    description: 'Generates a blank base role layout frame.',
+    permissions: [PermissionFlagsBits.ManageRoles],
+    options: [
+        {
+            name: 'name',
+            description: 'Label title string for the new role layout asset',
+            type: ApplicationCommandOptionType.String,
+            required: true
         }
-    },
+    ],
+
+    async run(context, args) {
+        const labelTitle = context.isCommand?.()
+            ? context.options.getString('name')
+            : args.join(' ');
+
+        if (!labelTitle) {
+            return context.reply({
+                content: '❌ Title configuration definition parameters blank.',
+                ephemeral: true
+            });
+        }
+
+        const spawnedRole = await context.guild.roles.create({
+            name: labelTitle,
+            color: 0x5865F2
+        });
+
+        const execUser = context.isCommand?.()
+            ? context.user
+            : context.author;
+
+        const embed = createPremiumEmbed('Security Role Generated', '', execUser)
+            .addFields({
+                name: '🎨 New Role Blueprint',
+                value: `> **Role Entity:** ${spawnedRole}
+> **Label Tag:** \`${spawnedRole.name}\`
+> **ID Mapping:** \`${spawnedRole.id}\``,
+                inline: false
+            });
+
+        return context.isCommand?.()
+            ? context.reply({ embeds: [embed] })
+            : context.channel.send({ embeds: [embed] });
+    }
+},
 
 // 24. CHANNEL DELETE
 {
@@ -633,7 +664,10 @@ module.exports = [
 
         const embed = createPremiumEmbed(
             'Structure Wiped',
-            `💥 **Deletion Sequence Engaged**\n\n> **Target Node Name:** \`#${context.channel.name}\`\n> Unlinking data matrices from structural tree...`,
+            `💥 **Deletion Sequence Engaged**
+
+> **Target Node Name:** \`#${context.channel.name}\`
+> Unlinking data matrices from structural tree...`,
             execUser
         );
 
@@ -644,12 +678,13 @@ module.exports = [
         );
 
         return context.channel.delete();
+    }
+},
 
-        module.exports = [
+// EMBED COMMAND
 {
     name: 'embed',
     description: 'Sends a custom embed message.',
-    permissions: [],
 
     options: [
         {
@@ -683,19 +718,17 @@ module.exports = [
             title = context.options.getString('title');
             description = context.options.getString('description');
         } else {
-            if (!args || args.length === 0) {
-                return context.reply('❌ Use: `.embed <color> | <title> | <description>`');
-            }
-
-            color = args[0];
-
+            color = args?.[0];
             const parts = args.slice(1).join(' ').split('|');
-            title = parts[0]?.trim();
-            description = parts[1]?.trim();
+            title = parts?.[0]?.trim();
+            description = parts?.[1]?.trim();
         }
 
         if (!color || !title || !description) {
-            return context.reply('❌ Missing fields. Format: `.embed <color> | <title> | <description>`');
+            return context.reply({
+                content: '❌ Missing fields. Use `.embed <color> | <title> | <description>`',
+                ephemeral: true
+            });
         }
 
         let resolvedColor = parseInt(color.replace('#', ''), 16);
@@ -714,8 +747,5 @@ module.exports = [
         return isSlash
             ? context.reply({ embeds: [embed] })
             : context.channel.send({ embeds: [embed] });
-    }
-}
-];
-    }
-}
+            }
+};
