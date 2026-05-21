@@ -212,26 +212,3 @@ module.exports = {
         }
     ]
 };
-```
-eof
-
-### Step-by-Step Integration with `index.js`
-
-To load this new module file dynamically:
-
-1. Add this import to the top of your `index.js` file:
-   ```javascript
-   const helpModule = require('./commands/help.js');
-   ```
-
-2. Register the command within your main command loader:
-   ```javascript
-   moderationCommandsList.forEach(cmd => { commands.set(cmd.name, cmd); });
-   applicationCommandsList.forEach(cmd => { commands.set(cmd.name, cmd); });
-   welcomeModule.commands.forEach(cmd => { commands.set(cmd.name, cmd); });
-   inviteModule.commands.forEach(cmd => { commands.set(cmd.name, cmd); });
-   economyModule.commands.forEach(cmd => { commands.set(cmd.name, cmd); });
-   giveawayModule.commands.forEach(cmd => { commands.set(cmd.name, cmd); });
-   premiumModule.commands.forEach(cmd => { commands.set(cmd.name, cmd); });
-   funModule.forEach(cmd => { commands.set(cmd.name, cmd); });
-   helpModule.commands.forEach(cmd => { commands.set(cmd.name, cmd); }); // <-- Add this line
