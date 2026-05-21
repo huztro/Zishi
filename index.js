@@ -45,6 +45,7 @@ const client = new Client({
 });
 
 const PREFIX = '.';
+const OWNER_ID = "1363540480662704248";
 const startTime = Date.now();
 
 // List of blacklisted terminology for the built-in global AutoMod safety engine
