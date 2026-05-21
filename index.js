@@ -31,8 +31,6 @@ const welcomeModule = require('./commands/welcome.js');
 const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
 const funCommandsList = require('./commands/fun.js');
-const helpPanel = require('./commands/help.js');
-
 // Initialize client with critical gateway scopes
 const client = new Client({
     intents: [
