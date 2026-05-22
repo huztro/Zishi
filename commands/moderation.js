@@ -3,7 +3,7 @@
  * Architecture Support: Hybrid Slash (/) + Traditional Text Prefix Client Framework
  */
 
-const { EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { EmbedBuilder, PermissionFlagsBits, ChannelType, ApplicationCommandOptionType } = require('discord.js');
 
 // ==========================================
 // CENTRAL PREMIUM EMBED CORES
@@ -685,6 +685,7 @@ module.exports = [
 {
     name: 'embed',
     description: 'Sends a custom embed message.',
+    permissions: [PermissionFlagsBits.Administrator],
 
     options: [
         {
@@ -744,9 +745,59 @@ module.exports = [
             })
             .setTimestamp();
 
+
         return isSlash
     ? context.reply({ embeds: [embed] })
     : context.channel.send({ embeds: [embed] });
+    }
+},
+
+// SAY COMMAND
+{
+    name: 'say',
+    description: 'Makes the bot send a message to the channel.',
+    permissions: [PermissionFlagsBits.Administrator],
+
+    options: [
+        {
+            name: 'message',
+            description: 'The message content to send',
+            type: ApplicationCommandOptionType.String,
+            required: true
+        }
+    ],
+
+    async run(context, args) {
+        const isSlash = context.isCommand?.();
+        const execUser = isSlash ? context.user : context.author;
+
+        const messageContent = isSlash
+            ? context.options.getString('message')
+            : args.join(' ');
+
+        if (!messageContent) {
+            return context.reply({
+                content: '❌ Please provide a message to send.',
+                ephemeral: true
+            });
+        }
+
+        const embed = new EmbedBuilder()
+            .setDescription(messageContent)
+            .setColor(0x5865F2)
+            .setFooter({
+                text: `Sent by ${execUser.username}`,
+                iconURL: execUser.displayAvatarURL({ size: 256 })
+            })
+            .setTimestamp();
+
+        if (isSlash) {
+            await context.reply({ content: '✅ Message sent.', ephemeral: true });
+            return context.channel.send({ embeds: [embed] });
+        } else {
+            await context.delete().catch(() => {});
+            return context.channel.send({ embeds: [embed] });
+        }
     }
 }
 ];
