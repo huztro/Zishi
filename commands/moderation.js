@@ -785,9 +785,6 @@ module.exports = [
         const embed = new EmbedBuilder()
             .setDescription(messageContent)
             .setColor(0x5865F2)
-            .setFooter({
-                text: `Sent by ${execUser.username}`,
-                iconURL: execUser.displayAvatarURL({ size: 256 })
             })
             .setTimestamp();
 
