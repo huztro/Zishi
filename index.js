@@ -18,7 +18,9 @@ const {
     PermissionFlagsBits, 
     REST, 
     Routes, 
-    ChannelType 
+    ChannelType,
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +33,7 @@ const welcomeModule = require('./commands/welcome.js');
 const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
 const funCommandsList = require('./commands/fun.js');
+const helpCommand = require('./commands/help.js');
 // Initialize client with critical gateway scopes
 const client = new Client({
     intents: [
@@ -46,9 +49,7 @@ const client = new Client({
 
 const PREFIX = '.';
 const OWNER_ID = "1363540480662704248";
-const prefix = global.prefixes?.[message.guild.id] || ".";
 const startTime = Date.now();
-
 // List of blacklisted terminology for the built-in global AutoMod safety engine
 const BANNED_WORDS = ['discord.gg/', 'nitro', 'scam', 'free-giftcard', 'hack-tool'];
 
@@ -330,6 +331,8 @@ giveawayModule.commands.forEach(cmd => {
 funCommandsList.forEach(cmd => {
     commands.set(cmd.name, cmd);
 });
+// Load help command module (overwrites the inline registration with the proper module version)
+commands.set(helpCommand.name, helpCommand);
 
 // ==========================================
 // UNIFIED TRANSLATION PIPELINE BRIDGE
@@ -344,6 +347,8 @@ class UnifiedContext {
         this.channel = source.channel;
         this.member = source.member;
         this.createdTimestamp = source.createdTimestamp;
+        this.user = source.user || source.author || null;
+        this.author = source.author || source.user || null;
         
         // Universal interface options extraction mapping layer
         this.options = {
