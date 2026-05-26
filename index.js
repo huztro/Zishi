@@ -338,6 +338,7 @@ invitesModule.commands.forEach(cmd => {
 });
 // Load help command module (overwrites the inline registration with the proper module version)
 commands.set(helpCommand.name, helpCommand);
+commands.set(setprefixCommand.name, setprefixCommand);
 
 // ==========================================
 // UNIFIED TRANSLATION PIPELINE BRIDGE
