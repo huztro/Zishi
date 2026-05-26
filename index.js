@@ -332,6 +332,9 @@ giveawayModule.commands.forEach(cmd => {
 funCommandsList.forEach(cmd => {
     commands.set(cmd.name, cmd);
 });
+invitesModule.commands.forEach(cmd => {
+    commands.set(cmd.name, cmd);
+});
 // Load help command module (overwrites the inline registration with the proper module version)
 commands.set(helpCommand.name, helpCommand);
 
