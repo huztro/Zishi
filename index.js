@@ -30,6 +30,7 @@ require('dotenv').config();
 const moderationCommandsList = require('./commands/moderation.js');
 const applicationCommandsList = require('./commands/applications.js');
 const welcomeModule = require('./commands/welcome.js'); 
+const invitesModule = require('./commands/invites.js');
 const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
 const funCommandsList = require('./commands/fun.js');
