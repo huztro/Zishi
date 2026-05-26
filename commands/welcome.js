@@ -132,7 +132,7 @@ module.exports = {
                     .replace(/{guild}/g, `${context.guild.name}`);
 
                 const testEmbed = new EmbedBuilder()
-                    .setTitle('🎉 New Arrival Simulation')
+                    .setTitle('Welcome {user}')
                     .setDescription(localizedMessage)
                     .setColor(0x9B59B6)
                     .setThumbnail(user.displayAvatarURL({ dynamic: true }))
