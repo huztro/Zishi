@@ -35,6 +35,7 @@ const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
 const funCommandsList = require('./commands/fun.js');
 const helpCommand = require('./commands/help.js');
+const setprefixCommand = require('./commands/setprefix.js');
 // Initialize client with critical gateway scopes
 const client = new Client({
     intents: [
