@@ -840,4 +840,4 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 // Execute secure pipeline handshake login to Discord gateway network
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.BOT_TOKEN);
