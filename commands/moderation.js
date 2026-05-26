@@ -785,7 +785,6 @@ module.exports = [
         const embed = new EmbedBuilder()
             .setDescription(messageContent)
             .setColor(0x5865F2)
-            })
             .setTimestamp();
 
         if (isSlash) {
