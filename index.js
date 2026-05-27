@@ -548,7 +548,6 @@ client.on('messageCreate', async (message) => {
     // =========================
 
     try {
-        if (!command.isNative) {
             return await command.run(message, args);
         }
 
