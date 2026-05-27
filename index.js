@@ -467,24 +467,12 @@ client.once('ready', async () => {
 
     // Sync all commands to Discord Application Gateway
     const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-const slashBuilders = [];
-
-for (const cmd of commands.values()) {
-
-    if (
-        !cmd ||
-        typeof cmd.name !== "string" ||
-        typeof cmd.description !== "string"
-    ) continue;
-
-    if (cmd.name.length > 32) continue;
-
-    slashBuilders.push({
-        name: cmd.name.toLowerCase(),
-        description: cmd.description.slice(0, 100),
-        options: Array.isArray(cmd.options) ? cmd.options : []
-    });
-}
+const slashBuilders = [
+  {
+    name: "ping",
+    description: "test command"
+  }
+];
 
     try {
         console.log('🔄 Syncing slash commands globally to all guilds...');
