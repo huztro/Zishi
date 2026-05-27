@@ -1,80 +1,92 @@
 /**
- * All-In-One Unified Hybrid Modular Security & Utility Engine
- * Framework Architecture: Discord.js v14 Master Stack
- * Supports Parallel Pipeline: Traditional Text Prefix (!) + Global Application Slash Commands (/)
+ * Zishi — Full Slash Command Based System
+ * Discord.js v14
  */
 
-const { 
-    Client, 
-    GatewayIntentBits, 
-    Partials, 
-    EmbedBuilder, 
+const {
+    Client,
+    GatewayIntentBits,
+    Partials,
+    EmbedBuilder,
     ActionRowBuilder,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    ButtonBuilder, 
-    ButtonStyle, 
-    PermissionFlagsBits, 
-    REST, 
-    Routes, 
+    ButtonBuilder,
+    ButtonStyle,
+    PermissionFlagsBits,
+    REST,
+    Routes,
     ChannelType,
     StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder
+    StringSelectMenuOptionBuilder,
+    SlashCommandBuilder
 } = require('discord.js');
+
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// 📑 Import all separate module layers
+// =========================
+// MODULE IMPORTS
+// =========================
 const moderationCommandsList = require('./commands/moderation.js');
 const applicationCommandsList = require('./commands/applications.js');
-const welcomeModule = require('./commands/welcome.js'); 
+const welcomeModule = require('./commands/welcome.js');
 const invitesModule = require('./commands/invites.js');
 const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
 const funCommandsList = require('./commands/fun.js');
 const helpCommand = require('./commands/help.js');
-const setprefixCommand = require('./commands/setprefix.js');
-// Initialize client with critical gateway scopes
+
+// =========================
+// CLIENT
+// =========================
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildBans,
-        GatewayIntentBits.GuildModeration
+        GatewayIntentBits.GuildModeration,
+        GatewayIntentBits.GuildBans
     ],
-    partials: [Partials.Message, Partials.Channel, Partials.Reaction]
+    partials: [
+        Partials.Message,
+        Partials.Channel,
+        Partials.Reaction
+    ]
 });
 
-const PREFIX = '.';
-const OWNER_ID = "1363540480662704248";
-const startTime = Date.now();
-// List of blacklisted terminology for the built-in global AutoMod safety engine
-const BANNED_WORDS = ['discord.gg/', 'nitro', 'scam', 'free-giftcard', 'hack-tool'];
-
-// ==========================================
-// CENTRAL COMMAND REGISTRY MATRIX
-// ==========================================
 const commands = new Map();
+const slashCommands = [];
 
-// Helper to define and attach command configurations uniformly
-function register(name, description, permissions, options, callback) {
-    commands.set(name, { name, description, permissions, options: options || [], run: callback, isNative: true });
+const startTime = Date.now();
+
+// =========================
+// REGISTER HELPER
+// =========================
+function register(commandData, callback) {
+
+    commands.set(commandData.name, {
+        data: commandData,
+        run: callback
+    });
+
+    slashCommands.push(commandData.toJSON());
 }
 
-/**
- * GENERATE RADAR HEALTH STATUS COMPUTE LAYER
- */
+// =========================
+// HEALTH
+// =========================
 function getHealthMetrics(client) {
+
     const totalSeconds = (Date.now() - startTime) / 1000;
+
     const days = Math.floor(totalSeconds / 86400);
     const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = Math.floor(totalSeconds % 60);
-    
+
     return {
         ping: `${client.ws.ping}ms`,
         uptime: `${days}d ${hours}h ${minutes}m ${seconds}s`,
@@ -84,767 +96,413 @@ function getHealthMetrics(client) {
     };
 }
 
-// ==========================================
-// LOAD CORE SYSTEMS & 30 MODERATION COMMANDS
-// ==========================================
+// =========================
+// PING
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('ping')
+        .setDescription('Check bot latency'),
 
-// 1. Core Diagnostics Ping Command
-register('ping', 'Check connection latency.', null, [], async (ctx) => {
-    const msg = await ctx.reply({ content: 'Calculating pipeline ping...', fetchReply: true });
-    const latency = msg.createdTimestamp - ctx.createdTimestamp;
-    await ctx.editReply(`🏓 **Pong!** WebSocket Latency: \`${ctx.client.ws.ping}ms\` | Gateway Execution Trip: \`${latency}ms\``);
-});
+    async (interaction) => {
 
-// 2. Comprehensive Status Command
-register('status', 'Displays total architectural system statistics and performance metrics.', null, [], async (ctx) => {
-    const health = getHealthMetrics(ctx.client);
-    const embed = new EmbedBuilder()
-        .setTitle('🤖 Bot Status')
-        .setColor(0x00FFCC)
-        .addFields(
-            { name: '📡 Network Gateway Ping', value: `\`${health.ping}\``, inline: true },
-            { name: '⏳ Global System Uptime', value: `\`${health.uptime}\``, inline: true },
-            { name: '💾 Active RAM Footprint', value: `\`${health.memory}\``, inline: true },
-            { name: '🏢 Connected Guild Instances', value: `\`${health.guilds}\``, inline: true },
-            { name: '👥 Cached Identity Records', value: `\`${health.users}\``, inline: true },
-            { name: '🟢 Current Bot Status', value: `\`Online / Active\``, inline: true }
-        )
-        .setTimestamp();
-    await ctx.reply({ embeds: [embed] });
-});
+        const msg = await interaction.reply({
+            content: 'Pinging...',
+            fetchReply: true
+        });
 
-// ===============================
-// CENTRAL HELP DASHBOARD
-// ===============================
-register('help', 'Interactive premium help panel', null, [], async (ctx) => {
+        const latency =
+            msg.createdTimestamp - interaction.createdTimestamp;
 
-    const client = ctx.client;
-    const user = ctx.user || ctx.author;
-
-    // ===============================
-    // BASE EMBED
-    // ===============================
-    const baseEmbed = new EmbedBuilder()
-        .setTitle('💎 Zishi Help Menu')
-        .setDescription(
-            `> Select a category below\n` +
-            `> Use \`.help <command>\` for details\n\n` +
-            `💡 Invite Bot → https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot+applications.commands\n` +
-            `🎉 Support Server → https://discord.gg/your-support`
-        )
-        .setColor(0x1A1C1E)
-        .setFooter({ text: 'Zishi | Help Panel' })
-        .setTimestamp();
-
-    // ===============================
-    // DROPDOWN MENU
-    // ===============================
-    const menu = new StringSelectMenuBuilder()
-        .setCustomId('help_category_select')
-        .setPlaceholder('📁 Select a category')
-        .addOptions(
-            new StringSelectMenuOptionBuilder().setLabel('Moderation').setValue('mod').setEmoji('🛡️'),
-            new StringSelectMenuOptionBuilder().setLabel('Systems').setValue('sys').setEmoji('🎟️'),
-            new StringSelectMenuOptionBuilder().setLabel('Economy').setValue('eco').setEmoji('💰'),
-            new StringSelectMenuOptionBuilder().setLabel('Giveaways').setValue('give').setEmoji('🎁'),
-            new StringSelectMenuOptionBuilder().setLabel('Premium').setValue('prem').setEmoji('👑'),
-            new StringSelectMenuOptionBuilder().setLabel('Fun & Games').setValue('fun').setEmoji('🎮')
+        await interaction.editReply(
+            `🏓 Pong!\nAPI: \`${interaction.client.ws.ping}ms\`\nLatency: \`${latency}ms\``
         );
+    }
+);
 
-    const row = new ActionRowBuilder().addComponents(menu);
+// =========================
+// STATUS
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('status')
+        .setDescription('View bot status'),
 
-    const msg = await ctx.reply({
-        embeds: [baseEmbed],
-        components: [row],
-        fetchReply: true
-    });
+    async (interaction) => {
 
-    // ===============================
-    // COLLECTOR
-    // ===============================
-    const collector = msg.createMessageComponentCollector({
-        time: 300000
-    });
+        const health = getHealthMetrics(interaction.client);
 
-    collector.on('collect', async (i) => {
-        if (i.user.id !== user.id) return;
+        const embed = new EmbedBuilder()
+            .setTitle('🤖 Bot Status')
+            .setColor(0x00FFCC)
+            .addFields(
+                {
+                    name: '📡 Ping',
+                    value: `\`${health.ping}\``,
+                    inline: true
+                },
+                {
+                    name: '⏳ Uptime',
+                    value: `\`${health.uptime}\``,
+                    inline: true
+                },
+                {
+                    name: '💾 RAM',
+                    value: `\`${health.memory}\``,
+                    inline: true
+                },
+                {
+                    name: '🏢 Guilds',
+                    value: `\`${health.guilds}\``,
+                    inline: true
+                },
+                {
+                    name: '👥 Users',
+                    value: `\`${health.users}\``,
+                    inline: true
+                }
+            )
+            .setTimestamp();
 
-        let embed;
+        await interaction.reply({
+            embeds: [embed]
+        });
+    }
+);
 
-        switch (i.values[0]) {
+// =========================
+// HELP
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('help')
+        .setDescription('Open help menu'),
 
-            case 'mod':
-                embed = new EmbedBuilder()
-                    .setTitle('🛡️ Moderation')
-                    .setColor(0x1A1C1E)
-                    .addFields(
-                        { name: 'purge', value: 'Delete messages' },
-                        { name: 'kick', value: 'Kick user' },
-                        { name: 'ban', value: 'Ban user' },
-                        { name: 'warn', value: 'Warn user' }
-                    );
-                break;
+    async (interaction) => {
 
-            case 'sys':
-                embed = new EmbedBuilder()
-                    .setTitle('🎟️ Systems')
-                    .setColor(0x1A1C1E)
-                    .addFields(
-                        { name: 'ticket setup', value: 'Create tickets system' },
-                        { name: 'welcome setup', value: 'Setup welcome system' }
-                    );
-                break;
+        const embed = new EmbedBuilder()
+            .setTitle('💎 Zishi Help')
+            .setDescription(
+                `Select a category below.`
+            )
+            .setColor(0x1A1C1E);
 
-            case 'eco':
-                embed = new EmbedBuilder()
-                    .setTitle('💰 Economy')
-                    .setColor(0x1A1C1E)
-                    .addFields(
-                        { name: 'balance', value: 'Check money' },
-                        { name: 'daily', value: 'Claim reward' },
-                        { name: 'work', value: 'Earn money' }
-                    );
-                break;
+        const menu = new StringSelectMenuBuilder()
+            .setCustomId('help_category_select')
+            .setPlaceholder('Select category')
+            .addOptions(
+                {
+                    label: 'Moderation',
+                    value: 'mod',
+                    emoji: '🛡️'
+                },
+                {
+                    label: 'Economy',
+                    value: 'eco',
+                    emoji: '💰'
+                },
+                {
+                    label: 'Fun',
+                    value: 'fun',
+                    emoji: '🎮'
+                }
+            );
 
-            case 'give':
-                embed = new EmbedBuilder()
-                    .setTitle('🎁 Giveaways')
-                    .setColor(0x1A1C1E)
-                    .addFields(
-                        { name: 'gstart', value: 'Start giveaway' },
-                        { name: 'greroll', value: 'Reroll winner' }
-                    );
-                break;
+        const row =
+            new ActionRowBuilder().addComponents(menu);
 
-            case 'prem':
-                embed = new EmbedBuilder()
-                    .setTitle('👑 Premium Tools')
-                    .setColor(0x1A1C1E)
-                    .addFields(
-                        { name: 'antiraid', value: 'Anti raid system' },
-                        { name: 'backup', value: 'Server backup' },
-                        { name: 'status', value: 'System status' }
-                    );
-                break;
-
-            case 'fun':
-                embed = new EmbedBuilder()
-                    .setTitle('🎮 Fun & Games')
-                    .setColor(0x1A1C1E)
-                    .addFields(
-                        { name: 'joke', value: 'Random jokes' },
-                        { name: 'iqtest', value: 'IQ test' },
-                        { name: 'hug', value: 'Hug someone' }
-                    );
-                break;
-        }
-
-        embed.setFooter({ text: 'Zishi Help System' }).setTimestamp();
-
-        await i.update({
+        await interaction.reply({
             embeds: [embed],
             components: [row]
         });
-    });
-
-    collector.on('end', () => {
-        msg.edit({ components: [] }).catch(() => {});
-    });
-});
-// 4. Setup Secure Captcha Gateway
-register('setup-verification', 'Spawns secure server verification interface.', [PermissionFlagsBits.Administrator], [], async (ctx) => {
-    const embed = new EmbedBuilder()
-        .setTitle('🔒 Verification System')
-        .setDescription(`✅ Click the button below to verify yourself and unlock:\n\n• 💬 Chat Access\n• 🎉 Full Server Features\n• 👥 Member Permissions\n• 🚀 Exclusive Channels\n\n⚠️ Verification is required to continue.`)
-        .setColor(0xE74C3C);
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('initiate_captcha').setLabel('Verify Identity').setStyle(ButtonStyle.Danger).setEmoji('🛡️')
-    );
-    await ctx.reply({ content: 'Verification entry point deployed successfully.', ephemeral: true });
-    await ctx.channel.send({ embeds: [embed], components: [row] });
-});
-
-// 5. Setup Ticketing Subsystem
-register('setup-tickets', 'Spawns transactional customer support ticket system routing panels.', [PermissionFlagsBits.Administrator], [], async (ctx) => {
-    const embed = new EmbedBuilder()
-        .setTitle('🎫 Support System')
-        .setDescription(`Click the button below to open a ticket with our support team.\n We will review your request and assist you as quickly as possible.`)
-        .setColor(0x2ECC71);
-
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('create_ticket_channel').setLabel('Open Ticket').setStyle(ButtonStyle.Primary).setEmoji('✉️')
-    );
-    await ctx.reply({ content: 'Ticketing panel deployed successfully.', ephemeral: true });
-    await ctx.channel.send({ embeds: [embed], components: [row] });
-});
-
-/**
- * BATCH GENERATION OF THE REMAINING 27 MODERATION INFRASTRUCTURE COMMAND ENGINE UTILITIES
- */
-const mockModCommands = [
-    { name: 'kick', desc: 'Evicts targeted threat actor from server.' },
-    { name: 'ban', desc: 'Permanently terminates individual membership across data network nodes.' },
-    { name: 'unban', desc: 'Restores access permissions for a previously restricted account.' },
-    { name: 'mute', desc: 'Restricts user permission parameters from sending text transmissions.' },
-    { name: 'unmute', desc: 'Restores structural messaging capabilities to muted profiles.' },
-    { name: 'timeout', desc: 'Applies programmatic temporary timeout constraints onto individuals.' },
-    { name: 'warn', desc: 'Logs formal warning infraction records against a specific client profile.' },
-    { name: 'checkwarns', desc: 'Fetches total warning history logs parsed to target user.' },
-    { name: 'clearwarns', desc: 'Deletes and resets all structural warning infractions logged.' },
-    { name: 'purge', desc: 'Cleans up bulk quantities of legacy textual backlogs from channel history.' },
-    { name: 'lock', desc: 'Revokes channel interaction permissions for general community members.' },
-    { name: 'unlock', desc: 'Restores communication permissions for general community members on a locked channel.' },
-    { name: 'slowmode', desc: 'Establishes continuous execution timeout periods on chat messages.' },
-    { name: 'nuke', desc: 'Wipes chat history by fully re-cloning a server channel.' },
-    { name: 'softban', desc: 'Bans and instantly unbans a user to purge their recent message footprint.' },
-    { name: 'tempban', desc: 'Temporarily bans a user from the environment for a set duration.' },
-    { name: 'roleadd', desc: 'Grants a specified security role to a target member profile.' },
-    { name: 'roleremove', desc: 'Strips a specified security role from a target member profile.' },
-    { name: 'nick', desc: 'Modifies the local displayed nickname identifier of a target member.' },
-    { name: 'warnremove', desc: 'Removes a single specific warning infraction token via ID.' },
-    { name: 'lockdown', desc: 'Locks down all visible channels across the entire server category.' },
-    { name: 'unlockdown', desc: 'Restores public visibility and communication across the server category.' },
-    { name: 'channelcreate', desc: 'Creates a new text or voice communication channel channel.' },
-    { name: 'channeldelete', desc: 'Permanently deletes a targeted channel.' },
-    { name: 'roledel', desc: 'Deletes a custom configuration server role from the database.' },
-    { name: 'rolecreate', desc: 'Spawns a new structural role with zeroed base parameters.' },
-    { name: 'serverinfo', desc: 'Returns a detailed overview of the guild\'s technical layout.' },
-    { name: 'whois', desc: 'Fetches granular configuration details regarding an individual user profile.' },
-    { name: 'slowmodestop', desc: 'Resets channel transmission parameters back to immediate messaging.' },
-    { name: 'clearinfractions', desc: 'Wipes the entire administrative log file for a given member.' }
-];
-
-// Load standard external command array packages directly into our map cache system
-moderationCommandsList.forEach(cmd => {
-    commands.set(cmd.name, cmd);
-});
-applicationCommandsList.forEach(cmd => {
-    commands.set(cmd.name, cmd);
-});
-welcomeModule.commands.forEach(cmd => {
-    commands.set(cmd.name, cmd);
-});
-economyModule.commands.forEach(cmd => {
-    commands.set(cmd.name, cmd);
-});
-giveawayModule.commands.forEach(cmd => {
-    commands.set(cmd.name, cmd);
-});
-funCommandsList.forEach(cmd => {
-    commands.set(cmd.name, cmd);
-});
-invitesModule.commands.forEach(cmd => {
-    commands.set(cmd.name, cmd);
-});
-// Load help command module (overwrites the inline registration with the proper module version)
-commands.set(helpCommand.name, helpCommand);
-commands.set(setprefixCommand.name, setprefixCommand);
-
-// ==========================================
-// UNIFIED TRANSLATION PIPELINE BRIDGE
-// ==========================================
-class UnifiedContext {
-    constructor(source, client) {
-        this.source = source;
-        this.client = client;
-        this.isInteraction = typeof source.reply === 'function' && source.isCommand?.();
-        
-        this.guild = source.guild;
-        this.channel = source.channel;
-        this.member = source.member;
-        this.createdTimestamp = source.createdTimestamp;
-        this.user = source.user || source.author || null;
-        this.author = source.author || source.user || null;
-        
-        // Universal interface options extraction mapping layer
-        this.options = {
-            getUser: (name) => this.isInteraction ? source.options.getUser(name) : source.mentions.users.first(),
-            getString: (name) => this.isInteraction ? source.options.getString(name) : null,
-            getInteger: (name) => this.isInteraction ? source.options.getInteger(name) : null,
-            getRole: (name) => this.isInteraction ? source.options.getRole(name) : null
-        };
-        this.mentions = source.mentions || null;
     }
+);
 
-    async reply(payload) {
-        if (this.isInteraction) {
-            if (this.source.replied || this.source.deferred) return await this.source.followUp(payload);
-            return await this.source.reply(payload);
-        }
-        this._replyMsg = await this.source.reply(payload);
-        return this._replyMsg;
+// =========================
+// VERIFY SYSTEM
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('setup-verification')
+        .setDescription('Setup verification system')
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.Administrator
+        ),
+
+    async (interaction) => {
+
+        const embed = new EmbedBuilder()
+            .setTitle('🔒 Verification System')
+            .setDescription(
+                'Click below to verify yourself.'
+            )
+            .setColor(0xE74C3C);
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('initiate_captcha')
+                .setLabel('Verify')
+                .setStyle(ButtonStyle.Danger)
+        );
+
+        await interaction.reply({
+            content: '✅ Verification panel created.',
+            ephemeral: true
+        });
+
+        await interaction.channel.send({
+            embeds: [embed],
+            components: [row]
+        });
     }
+);
 
-    async editReply(payload) {
-        const rawPayload = typeof payload === 'string' ? { content: payload } : payload;
-        if (this.isInteraction) return await this.source.editReply(rawPayload);
-        if (this._replyMsg) return await this._replyMsg.edit(rawPayload);
-        return await this.source.channel.send(rawPayload);
+// =========================
+// TICKET SYSTEM
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('setup-tickets')
+        .setDescription('Setup ticket system')
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.Administrator
+        ),
+
+    async (interaction) => {
+
+        const embed = new EmbedBuilder()
+            .setTitle('🎫 Support System')
+            .setDescription(
+                'Click below to create a ticket.'
+            )
+            .setColor(0x2ECC71);
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('create_ticket_channel')
+                .setLabel('Open Ticket')
+                .setStyle(ButtonStyle.Primary)
+        );
+
+        await interaction.reply({
+            content: '✅ Ticket panel created.',
+            ephemeral: true
+        });
+
+        await interaction.channel.send({
+            embeds: [embed],
+            components: [row]
+        });
     }
-}
+);
 
-// ==========================================
-// AUTOMATED GUILD MEMBER JOIN EVENT LISTENER
-// ==========================================
-client.on('guildMemberAdd', async (member) => {
-    const config = welcomeModule.welcomeDatabase.get(member.guild.id);
-    if (!config) return;
-
-    const channel = member.guild.channels.cache.get(config.channelId);
-    if (!channel) return;
-
-    const finalizedString = config.message
-        .replace(/{user}/g, `${member.user}`)
-        .replace(/{guild}/g, `${member.guild.name}`);
-
-    const welcomeEmbed = new EmbedBuilder()
-        .setTitle('✨ New Member Connection')
-        .setDescription(finalizedString)
-        .setColor(0x2ECC71)
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-        .setTimestamp();
-
-    await channel.send({ content: `${member.user}`, embeds: [welcomeEmbed] }).catch(() => {});
-});
-
-// ==========================================
-// GATEWAY LISTENER INTERCEPTORS
-// ==========================================
-
-// Global Lifecycle Initializer & Interactive Sync Engine
+// =========================
+// READY
+// =========================
 client.once('ready', async () => {
-    console.log(`🚀 System Engine initialized as: ${client.user.tag}`);
 
-    // Initialize giveaway expiry tracker
+    console.log(`🚀 Logged in as ${client.user.tag}`);
+
     giveawayModule.initializeGiveawayTrackers(client);
-    
-    // ==========================================
-    // 5 PREMIUM STATUS + DND / ONLINE ROTATOR
-    // ==========================================
+
+    // =========================
+    // PRESENCE
+    // =========================
     const statuses = [
-        { text: 'Made By Huztro', type: 3 }, 
-        { text: 'Ensuring Uptime Stability', type: 0 }, 
-        { text: 'Optimizing Performance Modules', type: 2 }, 
-        { text: 'Executing System Diagnostics', type: 3 },
-        { text: 'Protecting Servers', type: 1 }  
+        'Made By Huztro',
+        '/help - For Support',
+        'Executing System Diagnostics',
+        'Ensuring Uptim Stability'
     ];
 
-    let currentIndex = 0;
-    let presenceMode = 'dnd'; 
-
-    updateStatusText();
+    let index = 0;
 
     setInterval(() => {
-        updateStatusText();
+
+        client.user.setPresence({
+            activities: [
+                {
+                    name: statuses[index],
+                    type: 3
+                }
+            ],
+            status: 'online'
+        });
+
+        index =
+            (index + 1) % statuses.length;
+
     }, 5000);
 
-    setInterval(() => {
-        updatePresenceMode();
-    }, 60000);
-
-    function updateStatusText() {
-        const currentStatus = statuses[currentIndex];
-
-        client.user.setPresence({
-            activities: [{ name: currentStatus.text, type: currentStatus.type }],
-            status: presenceMode
-        });
-
-        currentIndex = (currentIndex + 1) % statuses.length;
-    }
-
-    function updatePresenceMode() {
-        presenceMode = (presenceMode === 'dnd') ? 'online' : 'dnd';
-
-        const currentStatus = statuses[currentIndex];
-        client.user.setPresence({
-            activities: [{ name: currentStatus.text, type: currentStatus.type }],
-            status: presenceMode
-        });
-
-        console.log(`🔄 Presence mode toggled: [Mode: ${presenceMode.toUpperCase()}]`);
-    }
-
-    // Sync all commands to Discord Application Gateway
-    const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-const slashBuilders = [
-  {
-    name: "ping",
-    description: "test command"
-  }
-];
-
+    // =========================
+    // GLOBAL SLASH SYNC
+    // =========================
     try {
-        console.log('🔄 Syncing slash commands globally to all guilds...');
+
+        const rest =
+            new REST({ version: '10' })
+                .setToken(process.env.BOT_TOKEN);
+
+        console.log('🔄 Registering slash commands...');
+
         await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: slashBuilders }
+            Routes.applicationCommands(
+                process.env.CLIENT_ID
+            ),
+            {
+                body: slashCommands
+            }
         );
-        console.log('✅ Global slash command synchronization complete.');
+
+        console.log('✅ Slash commands registered.');
+
     } catch (err) {
-        console.error('❌ Synchronizer encountered a structural registration exception:', err);
+
+        console.error(err);
     }
 });
 
-// Text Core Gateway Listener (Prefix Routing)
-client.on('messageCreate', async (message) => {
-    if (message.author.bot || !message.guild) return;
-
-    const isOwner = message.author.id === OWNER_ID;
-    let content = message.content;
-
-    // =========================
-    // OWNER NO-PREFIX SUPPORT
-    // =========================
-    if (isOwner && !content.startsWith(PREFIX)) {
-        content = PREFIX + content;
-    }
-
-    // =========================
-    // AUTO MOD ENGINE
-    // =========================
-    const messageContentLower = message.content.toLowerCase();
-    const triggerFound = BANNED_WORDS.some(word =>
-        messageContentLower.includes(word)
-    );
-
-    if (triggerFound && !message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-        await message.delete().catch(() => {});
-        const alertMsg = await message.channel.send(
-            `⚠️ **AutoMod Intercept:** ${message.author}, your transmission contained restricted terms. Filter applied.`
-        );
-        setTimeout(() => alertMsg.delete().catch(() => {}), 5000);
-        return;
-    }
-
-    // =========================
-    // PREFIX COMMANDS DISABLED
-    // Bot is now slash-command only. Use /commandname in any server.
-    // =========================
-    // if (!content.startsWith(PREFIX)) return;
-
-    // const args = content.slice(PREFIX.length).trim().split(/ +/);
-    // const commandName = args.shift().toLowerCase();
-
-    // const command = commands.get(commandName);
-    // if (!command) return;
-
-    // // =========================
-    // // PERMISSION CHECK
-    // // =========================
-    // if (command.permissions && !message.member.permissions.has(command.permissions)) {
-    //     return message.reply('❌ You lack the administrative clearance permissions to invoke this asset.');
-    // }
-
-    // // =========================
-    // // RUN COMMAND (TWO SYSTEMS SUPPORTED)
-    // // =========================
-
-    // try {
-    //         return await command.run(message, args);
-    //     }
-
-    //     const context = new UnifiedContext(message, client);
-    //     return await command.run(context);
-
-    // } catch (err) {
-    //     console.error(err);
-    //     return message.reply('❌ System runtime execution failure.');
-    // }
-});
-// ==========================================================
-// INTERACTION CORE GATEWAY LISTENER
-// SLASH COMMANDS + BUTTONS + MODALS
-// ==========================================================
-
+// =========================
+// INTERACTIONS
+// =========================
 client.on('interactionCreate', async (interaction) => {
 
-    // ======================================================
+    // =========================
     // SLASH COMMANDS
-    // ======================================================
-
+    // =========================
     if (interaction.isChatInputCommand()) {
 
-        const command = commands.get(interaction.commandName);
+        const command =
+            commands.get(interaction.commandName);
+
         if (!command) return;
-
-        // Permissions
-        if (
-            command.permissions &&
-            !interaction.member.permissions.has(command.permissions)
-        ) {
-            return interaction.reply({
-                content: '❌ No permission.',
-                ephemeral: true
-            });
-        }
-
-        // Raw handler
-        if (!command.isNative) {
-            try {
-                return await command.run(interaction, null);
-            } catch (err) {
-                console.error(err);
-
-                return interaction.reply({
-                    content: '❌ Command failed.',
-                    ephemeral: true
-                });
-            }
-        }
-
-        // Unified Context
-        const context = new UnifiedContext(interaction, client);
 
         try {
 
-            await command.run(context);
+            await command.run(interaction);
 
         } catch (err) {
 
             console.error(err);
 
             if (!interaction.replied) {
+
                 await interaction.reply({
-                    content: '❌ Slash execution failed.',
+                    content: '❌ Command failed.',
                     ephemeral: true
                 });
             }
         }
     }
 
-    // ======================================================
+    // =========================
     // BUTTONS
-    // ======================================================
+    // =========================
+    if (interaction.isButton()) {
 
-    else if (interaction.isButton()) {
-
-        if (interaction.customId.startsWith('apply_')) {
-
-            const appID =
-                interaction.customId.split('_')[1];
-
-            const template =
-                applicationsTemplates.get(appID);
-
-            if (!template) {
-                return interaction.reply({
-                    content: '❌ Application missing.',
-                    ephemeral: true
-                });
-            }
-
-            const modal = new ModalBuilder()
-                .setCustomId(`staff_apply_${appID}`)
-                .setTitle(template.title);
-
-            template.questions.forEach((question, index) => {
-
-                const input = new TextInputBuilder()
-                    .setCustomId(`question_${index}`)
-                    .setLabel(question.substring(0, 45))
-                    .setStyle(TextInputStyle.Paragraph)
-                    .setRequired(true);
-
-                const row =
-                    new ActionRowBuilder().addComponents(input);
-
-                modal.addComponents(row);
-            });
-
-            return interaction.showModal(modal);
-        }
-    }
-
-    // ======================================================
-    // MODALS
-    // ======================================================
-
-    else if (interaction.isModalSubmit()) {
-
+        // =========================
+        // CREATE TICKET
+        // =========================
         if (
-            interaction.customId.startsWith(
-                'staff_apply_'
-            )
+            interaction.customId ===
+            'create_ticket_channel'
         ) {
 
-            const appID =
-                interaction.customId.split('_')[2];
-
-            const template =
-                applicationsTemplates.get(appID);
-
-            if (!template) {
-                return interaction.reply({
-                    content: '❌ Template missing.',
-                    ephemeral: true
-                });
-            }
-
-            let answers = '';
-
-            template.questions.forEach((question, index) => {
-
-                const response =
-                    interaction.fields.getTextInputValue(
-                        `question_${index}`
-                    );
-
-                answers +=
-                    `**${question}**\n${response}\n\n`;
+            await interaction.deferReply({
+                ephemeral: true
             });
 
-            // CHANGE THIS
-            const applicationChannel =
-                interaction.guild.channels.cache.get(
-                    '1500169351549026475'
-                );
-
-            if (!applicationChannel) {
-                return interaction.reply({
-                    content:
-                        '❌ Application channel missing.',
-                    ephemeral: true
+            const ticket =
+                await interaction.guild.channels.create({
+                    name: `ticket-${interaction.user.username}`,
+                    type: ChannelType.GuildText,
+                    permissionOverwrites: [
+                        {
+                            id: interaction.guild.roles.everyone.id,
+                            deny: [
+                                PermissionFlagsBits.ViewChannel
+                            ]
+                        },
+                        {
+                            id: interaction.user.id,
+                            allow: [
+                                PermissionFlagsBits.ViewChannel,
+                                PermissionFlagsBits.SendMessages
+                            ]
+                        }
+                    ]
                 });
-            }
 
             const embed = new EmbedBuilder()
-                .setColor('#111111')
-                .setTitle('📨 New Staff Application')
-                .setDescription(answers)
-                .addFields(
-                    {
-                        name: '👤 User',
-                        value: interaction.user.tag,
-                        inline: true
-                    },
-                    {
-                        name: '🆔 ID',
-                        value: interaction.user.id,
-                        inline: true
-                    }
+                .setTitle('🎫 Ticket Created')
+                .setDescription(
+                    'Support will be with you shortly.'
                 )
-                .setTimestamp();
+                .setColor(0x3498DB);
 
-            await applicationChannel.send({
-                embeds: [embed]
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(
+                            'close_ticket_channel'
+                        )
+                        .setLabel('Close Ticket')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+            await ticket.send({
+                content: `${interaction.user}`,
+                embeds: [embed],
+                components: [row]
             });
 
-            return interaction.reply({
+            await interaction.editReply({
+                content: `✅ Ticket created: ${ticket}`
+            });
+        }
+
+        // =========================
+        // CLOSE TICKET
+        // =========================
+        if (
+            interaction.customId ===
+            'close_ticket_channel'
+        ) {
+
+            await interaction.reply({
                 content:
-                    '✅ Application submitted successfully.',
+                    '🔒 Closing ticket in 5 seconds...'
+            });
+
+            setTimeout(() => {
+                interaction.channel.delete()
+                    .catch(() => {});
+            }, 5000);
+        }
+
+        // =========================
+        // VERIFY BUTTON
+        // =========================
+        if (
+            interaction.customId ===
+            'initiate_captcha'
+        ) {
+
+            await interaction.reply({
+                content:
+                    '✅ You are now verified.',
                 ephemeral: true
             });
         }
     }
-
-    // Process UI interaction events (Ticketing and Verification systems)
-    if (interaction.isButton()) {
-        
-        // SYSTEM 1: LIVE SUPPORT TICKETING PIPELINE ROUTER
-        if (interaction.customId === 'create_ticket_channel') {
-            await interaction.deferReply({ ephemeral: true });
-            
-            const ticketChannel = await interaction.guild.channels.create({
-                name: `ticket-${interaction.user.username}`,
-                type: ChannelType.GuildText,
-                permissionOverwrites: [
-                    { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-                    { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] }
-                ]
-            });
-
-            const ticketEmbed = new EmbedBuilder()
-                .setTitle(`🎫 Ticket Created: ${ticketChannel.name}`)
-                .setDescription('Support will be with you shortly. To lock this interaction channel, click the button below.')
-                .setColor(0x3498DB);
-
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('close_ticket_channel').setLabel('Close Ticket').setStyle(ButtonStyle.Danger).setEmoji('🔒')
-            );
-
-            await ticketChannel.send({ content: `${interaction.user} support interface initialized.`, embeds: [ticketEmbed], components: [row] });
-            await interaction.editReply({ content: `Your support ticket has been opened: ${ticketChannel}` });
-        }
-
-        if (interaction.customId === 'close_ticket_channel') {
-            await interaction.reply({ content: 'Locking configuration. This communication node will self-destruct in 5 seconds...' });
-            setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
-        }
-
-        // --- LIVE INTERACTIVE TICKETING ENTRANCE ---
-        if (interaction.customId === 'join_giveaway_pool') {
-            const db = JSON.parse(fs.readFileSync(path.join(__dirname, 'giveaways.json'), 'utf8'));
-            const gw = db[interaction.message.id];
-
-            if (!gw) {
-                return interaction.reply({ content: '❌ **Database Sync Error:** Configuration context lost.', ephemeral: true });
-            }
-            if (gw.ended) {
-                return interaction.reply({ content: '❌ This giveaway has already expired.', ephemeral: true });
-            }
-
-            // Check if the user is already registered in the drawing pool
-            if (gw.participants.includes(interaction.user.id)) {
-                return interaction.reply({ content: '⚠️ You have already secured an entry slot in this drawing!', ephemeral: true });
-            }
-
-            // Push player token signature inside data payload array
-            gw.participants.push(interaction.user.id);
-            db[interaction.message.id] = gw;
-            fs.writeFileSync(path.join(__dirname, 'giveaways.json'), JSON.stringify(db, null, 4));
-
-            // Dynamically update user total entry footprints in the live embed card frame
-            const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-                .setFooter({ text: `Entries Counter: ${gw.participants.length} Users Registered` });
-
-            await interaction.update({ embeds: [updatedEmbed] });
-            return interaction.followUp({ content: '🎟️ **Entry Confirmed:** Your user signature has been added to the prize draw pool successfully.', ephemeral: true });
-        }
-        
-        // SYSTEM 3: INTERACTIVE CAPTCHA VERIFICATION MATRIX ENGINE
-        if (interaction.customId === 'initiate_captcha') {
-            const validSolution = Math.floor(Math.random() * 4) + 1; 
-            
-            const captchaEmbed = new EmbedBuilder()
-                .setTitle('🧩 Anti-Bot Identity Validation Challenge')
-                .setDescription('To verify that you are a human user, match the target validation sequence below:\n\n**Select Option Block Number:** `' + validSolution + '`')
-                .setColor(0xF1C40F);
-
-            const row = new ActionRowBuilder();
-            for (let i = 1; i <= 4; i++) {
-                row.addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`captcha_choice_${i}_${validSolution}`)
-                        .setLabel(`Option #${i}`)
-                        .setStyle(ButtonStyle.Secondary)
-                );
-            }
-
-            await interaction.reply({ embeds: [captchaEmbed], components: [row], ephemeral: true });
-        }
-
-        // Evaluate user puzzle selections
-        if (interaction.customId.startsWith('captcha_choice_')) {
-            const parts = interaction.customId.split('_');
-            const userChoice = parts[2];
-            const correctChoice = parts[3];
-
-            if (userChoice === correctChoice) {
-                const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === '﹒⚔・Verified . ?');
-                if (verifiedRole) {
-                    await interaction.member.roles.add(verifiedRole).catch(() => {});
-                    await interaction.update({ content: '... **Verification Passed!** Your client container signature has been updated. Access granted.', embeds: [], components: [] });
-                } else {
-                    await interaction.update({ content: '⚠️ **Verification Passed!** However, no role named precisely `"﹒⚔・Verified . ?"` was detected on this server configuration.', embeds: [], components: [] });
-                }
-            } else {
-                await interaction.update({ content: '❌ **Verification Failed.** Identity mismatch signature detected. Click "Verify Identity" to cycle a new validation grid sequence.', embeds: [], components: [] });
-            }
-        }
-    }
 });
 
-// Execute secure pipeline handshake login to Discord gateway network
-console.log("TOKEN EXISTS:", !!process.env.BOT_TOKEN);
+// =========================
+// LOGIN
+// =========================
+console.log(
+    'TOKEN EXISTS:',
+    !!process.env.BOT_TOKEN
+);
+
 client.login(process.env.BOT_TOKEN);
