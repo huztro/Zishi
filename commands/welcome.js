@@ -1,147 +1,334 @@
 /**
  * Nexora Premium-Tier Welcome Configuration Subsystem
- * Architecture Support: Hybrid Slash (/) + Traditional Text Prefix Client Framework
+ * Architecture Support: FULL SLASH COMMAND FRAMEWORK
  */
 
-const { EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const {
+    EmbedBuilder,
+    PermissionFlagsBits,
+    ChannelType,
+    SlashCommandBuilder
+} = require('discord.js');
 
-// Runtime memory database for welcome configurations (Shared via exports if needed)
-const welcomeDatabase = new Map(); 
+// Runtime memory database
+const welcomeDatabase = new Map();
 
 module.exports = {
-    welcomeDatabase, // Export database access so index.js can catch real joins
+
+    welcomeDatabase,
+
     commands: [
-        // 1. WELCOME SETUP
+
+        // ==================================================
+        // WELCOME SETUP
+        // ==================================================
         {
-            name: 'welcomesetup',
-            description: 'Setup Welcome Messages For The Server.',
-            permissions: [PermissionFlagsBits.Administrator],
-            options: [
-                { name: 'channel', description: 'The text channel to stream greetings into', type: 7, required: true },
-                { name: 'message', description: 'Custom text greeting. Use {user} and {guild} as variables.', type: 3, required: true }
-            ],
-            async run(context, args) {
-                const isSlash = context.isCommand?.();
-                const guild = context.guild;
+            data: new SlashCommandBuilder()
+                .setName('welcomesetup')
+                .setDescription(
+                    'Setup Welcome Messages For The Server.'
+                )
+                .setDefaultMemberPermissions(
+                    PermissionFlagsBits.Administrator
+                )
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription(
+                            'The text channel to stream greetings into'
+                        )
+                        .addChannelTypes(
+                            ChannelType.GuildText
+                        )
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('message')
+                        .setDescription(
+                            'Use {user} and {guild} as variables.'
+                        )
+                        .setRequired(true)
+                ),
 
-                let channel, message;
-                if (isSlash) {
-                    channel = context.options.getChannel('channel');
-                    message = context.options.getString('message');
-                } else {
-                    channel = context.mentions.channels.first();
-                    message = args ? args.slice(1).join(' ') : null;
-                }
+            async run(interaction) {
 
-                if (!channel || channel.type !== ChannelType.GuildText) {
-                    const replyContent = '❌ **Setup Error:** The designated logging channel target must be a standard text layout channel.';
-                    return isSlash ? context.reply({ content: replyContent, ephemeral: true }) : context.reply(replyContent);
+                const guild =
+                    interaction.guild;
+
+                const channel =
+                    interaction.options.getChannel(
+                        'channel'
+                    );
+
+                const message =
+                    interaction.options.getString(
+                        'message'
+                    );
+
+                if (
+                    !channel ||
+                    channel.type !==
+                        ChannelType.GuildText
+                ) {
+
+                    return interaction.reply({
+                        content:
+                            '❌ **Setup Error:** The designated logging channel target must be a standard text layout channel.',
+                        ephemeral: true
+                    });
                 }
 
                 if (!message) {
-                    const replyContent = '❌ **Setup Error:** Please provide a custom welcome message payload string.';
-                    return isSlash ? context.reply({ content: replyContent, ephemeral: true }) : context.reply(replyContent);
+
+                    return interaction.reply({
+                        content:
+                            '❌ **Setup Error:** Please provide a custom welcome message payload string.',
+                        ephemeral: true
+                    });
                 }
 
-                welcomeDatabase.set(guild.id, { channelId: channel.id, message: message });
+                welcomeDatabase.set(
+                    guild.id,
+                    {
+                        channelId: channel.id,
+                        message: message
+                    }
+                );
 
-                const embed = new EmbedBuilder()
-                    .setTitle('👋 Welcome Engine Configured')
-                    .setColor(0x2ECC71)
-                    .addFields(
-                        { name: '📡 Stream Target Channel', value: `${channel}`, inline: true },
-                        { name: '📄 Active Phrase String', value: `\`\`\`${message}\`\`\``, inline: false }
-                    )
-                    .setTimestamp();
+                const embed =
+                    new EmbedBuilder()
+                        .setTitle(
+                            '👋 Welcome Engine Configured'
+                        )
+                        .setColor(0x2ECC71)
+                        .addFields(
+                            {
+                                name:
+                                    '📡 Stream Target Channel',
+                                value: `${channel}`,
+                                inline: true
+                            },
+                            {
+                                name:
+                                    '📄 Active Phrase String',
+                                value:
+                                    `\`\`\`${message}\`\`\``,
+                                inline: false
+                            }
+                        )
+                        .setTimestamp();
 
-                return isSlash ? context.reply({ embeds: [embed] }) : context.channel.send({ embeds: [embed] });
+                return interaction.reply({
+                    embeds: [embed]
+                });
             }
         },
 
-        // 2. WELCOME EDIT
+        // ==================================================
+        // WELCOME EDIT
+        // ==================================================
         {
-            name: 'welcomeedit',
-            description: 'Edit Current Welcome Channel Or Message.',
-            permissions: [PermissionFlagsBits.Administrator],
-            options: [
-                { name: 'channel', description: 'The modified target text channel', type: 7, required: true },
-                { name: 'message', description: 'The upgraded phrase layout matrix profile string.', type: 3, required: true }
-            ],
-            async run(context, args) {
-                const isSlash = context.isCommand?.();
-                const guild = context.guild;
+            data: new SlashCommandBuilder()
+                .setName('welcomeedit')
+                .setDescription(
+                    'Edit Current Welcome Channel Or Message.'
+                )
+                .setDefaultMemberPermissions(
+                    PermissionFlagsBits.Administrator
+                )
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription(
+                            'The modified target text channel'
+                        )
+                        .addChannelTypes(
+                            ChannelType.GuildText
+                        )
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('message')
+                        .setDescription(
+                            'The upgraded phrase layout matrix profile string.'
+                        )
+                        .setRequired(true)
+                ),
 
-                if (!welcomeDatabase.has(guild.id)) {
-                    const replyContent = '❌ **Operational Fault:** No welcome profile found on this guild. Use `.welcomesetup` first.';
-                    return isSlash ? context.reply({ content: replyContent, ephemeral: true }) : context.reply(replyContent);
-                }
+            async run(interaction) {
 
-                let channel, message;
-                if (isSlash) {
-                    channel = context.options.getChannel('channel');
-                    message = context.options.getString('message');
-                } else {
-                    channel = context.mentions.channels.first();
-                    message = args ? args.slice(1).join(' ') : null;
-                }
+                const guild =
+                    interaction.guild;
 
-                if (!channel || channel.type !== ChannelType.GuildText) {
-                    const replyContent = '❌ **Setup Error:** Target must be a standard text channel.';
-                    return isSlash ? context.reply({ content: replyContent, ephemeral: true }) : context.reply(replyContent);
-                }
-
-                welcomeDatabase.set(guild.id, { channelId: channel.id, message: message });
-
-                const embed = new EmbedBuilder()
-                    .setTitle('🔄 Welcome Engine Manifest Patched')
-                    .setColor(0x3498DB)
-                    .addFields(
-                        { name: '📡 New Target Channel', value: `${channel}`, inline: true },
-                        { name: '📄 Updated Phrase String', value: `\`\`\`${message}\`\`\``, inline: false }
+                if (
+                    !welcomeDatabase.has(
+                        guild.id
                     )
-                    .setTimestamp();
+                ) {
 
-                return isSlash ? context.reply({ embeds: [embed] }) : context.channel.send({ embeds: [embed] });
+                    return interaction.reply({
+                        content:
+                            '❌ **Operational Fault:** No welcome profile found on this guild. Use `/welcomesetup` first.',
+                        ephemeral: true
+                    });
+                }
+
+                const channel =
+                    interaction.options.getChannel(
+                        'channel'
+                    );
+
+                const message =
+                    interaction.options.getString(
+                        'message'
+                    );
+
+                if (
+                    !channel ||
+                    channel.type !==
+                        ChannelType.GuildText
+                ) {
+
+                    return interaction.reply({
+                        content:
+                            '❌ **Setup Error:** Target must be a standard text channel.',
+                        ephemeral: true
+                    });
+                }
+
+                welcomeDatabase.set(
+                    guild.id,
+                    {
+                        channelId: channel.id,
+                        message: message
+                    }
+                );
+
+                const embed =
+                    new EmbedBuilder()
+                        .setTitle(
+                            '🔄 Welcome Engine Manifest Patched'
+                        )
+                        .setColor(0x3498DB)
+                        .addFields(
+                            {
+                                name:
+                                    '📡 New Target Channel',
+                                value: `${channel}`,
+                                inline: true
+                            },
+                            {
+                                name:
+                                    '📄 Updated Phrase String',
+                                value:
+                                    `\`\`\`${message}\`\`\``,
+                                inline: false
+                            }
+                        )
+                        .setTimestamp();
+
+                return interaction.reply({
+                    embeds: [embed]
+                });
             }
         },
 
-        // 3. WELCOME TEST SIMULATION
+        // ==================================================
+        // WELCOME TEST
+        // ==================================================
         {
-            name: 'welcometest',
-            description: 'test welcome message.',
-            permissions: [PermissionFlagsBits.Administrator],
-            options: [
-                { name: 'channel', description: 'The text channel target layout to evaluate', type: 7, required: true }
-            ],
-            async run(context) {
-                const isSlash = context.isCommand?.();
-                const channel = isSlash ? context.options.getChannel('channel') : context.mentions.channels.first();
-                const user = isSlash ? context.user : context.author;
-                const member = context.member;
+            data: new SlashCommandBuilder()
+                .setName('welcometest')
+                .setDescription(
+                    'Test welcome message.'
+                )
+                .setDefaultMemberPermissions(
+                    PermissionFlagsBits.Administrator
+                )
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription(
+                            'The text channel target layout to evaluate'
+                        )
+                        .addChannelTypes(
+                            ChannelType.GuildText
+                        )
+                        .setRequired(true)
+                ),
 
-                if (!channel || channel.type !== ChannelType.GuildText) {
-                    const replyContent = '❌ **Validation Fault:** Simulated testing routes require an active text node.';
-                    return isSlash ? context.reply({ content: replyContent, ephemeral: true }) : context.reply(replyContent);
+            async run(interaction) {
+
+                const channel =
+                    interaction.options.getChannel(
+                        'channel'
+                    );
+
+                const user =
+                    interaction.user;
+
+                if (
+                    !channel ||
+                    channel.type !==
+                        ChannelType.GuildText
+                ) {
+
+                    return interaction.reply({
+                        content:
+                            '❌ **Validation Fault:** Simulated testing routes require an active text node.',
+                        ephemeral: true
+                    });
                 }
 
-                const guildConfig = welcomeDatabase.get(context.guild.id);
-                const phraseString = guildConfig ? guildConfig.message : "👋 Welcome {user} to **{guild}**! We are glad you are here.";
+                const guildConfig =
+                    welcomeDatabase.get(
+                        interaction.guild.id
+                    );
 
-                const localizedMessage = phraseString
-                    .replace(/{user}/g, `${user}`)
-                    .replace(/{guild}/g, `${context.guild.name}`);
+                const phraseString =
+                    guildConfig
+                        ? guildConfig.message
+                        : '👋 Welcome {user} to **{guild}**! We are glad you are here.';
 
-                const testEmbed = new EmbedBuilder()
-                    .setTitle('Welcome {user}')
-                    .setDescription(localizedMessage)
-                    .setColor(0x9B59B6)
-                    .setThumbnail(user.displayAvatarURL({ dynamic: true }))
-                    .setTimestamp();
+                const localizedMessage =
+                    phraseString
+                        .replace(
+                            /{user}/g,
+                            `${user}`
+                        )
+                        .replace(
+                            /{guild}/g,
+                            `${interaction.guild.name}`
+                        );
 
-                await channel.send({ content: `${user}`, embeds: [testEmbed] });
-                
-                const completeText = `✅ **Simulation Complete:** Sent output sequence straight to channel node: ${channel}`;
-                return isSlash ? context.reply({ content: completeText, ephemeral: true }) : context.channel.send(completeText);
+                const testEmbed =
+                    new EmbedBuilder()
+                        .setTitle(
+                            'Welcome {user}'
+                        )
+                        .setDescription(
+                            localizedMessage
+                        )
+                        .setColor(0x9B59B6)
+                        .setThumbnail(
+                            user.displayAvatarURL({
+                                dynamic: true
+                            })
+                        )
+                        .setTimestamp();
+
+                await channel.send({
+                    content: `${user}`,
+                    embeds: [testEmbed]
+                });
+
+                return interaction.reply({
+                    content:
+                        `✅ **Simulation Complete:** Sent output sequence straight to channel node: ${channel}`,
+                    ephemeral: true
+                });
             }
         }
     ]
