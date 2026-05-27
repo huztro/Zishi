@@ -1,20 +1,113 @@
-const { Events } = require('discord.js');
+const {
+    SlashCommandBuilder,
+    PermissionFlagsBits
+} = require('discord.js');
 
-module.exports = (client) => {
+const {
+    getSettings,
+    saveSettings
+} = require('../utils/settings');
 
-    client.on(Events.MessageCreate, async (message) => {
+module.exports = {
 
-        if (!message.guild) return;
-        if (message.author.bot) return;
+    data: new SlashCommandBuilder()
 
-        // React if bot is pinged
-        if (message.mentions.has(client.user)) {
+        .setName('autoreact')
+        .setDescription('Manage autoreact')
 
-            try {
+        .addSubcommand(sub =>
+            sub
+                .setName('enable')
+                .setDescription('Enable autoreact')
+        )
 
-                await message.react('👑');
+        .addSubcommand(sub =>
+            sub
+                .setName('disable')
+                .setDescription('Disable autoreact')
+        )
 
-            } catch (err) {}
+        .addSubcommand(sub =>
+            sub
+                .setName('add')
+                .setDescription('Add autoreact')
+
+                .addStringOption(opt =>
+                    opt
+                        .setName('message')
+                        .setDescription('Trigger message')
+                        .setRequired(true)
+                )
+
+                .addStringOption(opt =>
+                    opt
+                        .setName('emoji')
+                        .setDescription('Emoji')
+                        .setRequired(true)
+                )
+        )
+
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.Administrator
+        ),
+
+    async execute(interaction) {
+
+        const settings =
+            getSettings(interaction.guild.id);
+
+        const sub =
+            interaction.options.getSubcommand();
+
+        if (sub === 'enable') {
+
+            settings.autoreact = true;
+
+            saveSettings(
+                interaction.guild.id,
+                settings
+            );
+
+            return interaction.reply(
+                '✅ Autoreact enabled.'
+            );
         }
-    });
+
+        if (sub === 'disable') {
+
+            settings.autoreact = false;
+
+            saveSettings(
+                interaction.guild.id,
+                settings
+            );
+
+            return interaction.reply(
+                '❌ Autoreact disabled.'
+            );
+        }
+
+        if (sub === 'add') {
+
+            const message =
+                interaction.options.getString('message');
+
+            const emoji =
+                interaction.options.getString('emoji');
+
+            settings.autoreacts.push({
+                trigger: message.toLowerCase(),
+                emoji
+            });
+
+            saveSettings(
+                interaction.guild.id,
+                settings
+            );
+
+            return interaction.reply(
+                `✅ Autoreact added.\nTrigger: \`${message}\`\nEmoji: ${emoji}`
+            );
+        }
+    }
 };
