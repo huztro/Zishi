@@ -483,12 +483,12 @@ for (const cmd of commands.values()) {
 }
 
     try {
-        console.log('🔄 Syncing dual integration routes to application server...');
+        console.log('🔄 Syncing slash commands globally to all guilds...');
         await rest.put(
-            Routes.applicationGuildCommands(process.env.CLIENT_ID),
+            Routes.applicationCommands(process.env.CLIENT_ID),
             { body: slashBuilders }
         );
-        console.log('✅ Mainframe synchronization complete.');
+        console.log('✅ Global slash command synchronization complete.');
     } catch (err) {
         console.error('❌ Synchronizer encountered a structural registration exception:', err);
     }
@@ -526,38 +526,39 @@ client.on('messageCreate', async (message) => {
     }
 
     // =========================
-    // PREFIX CHECK
+    // PREFIX COMMANDS DISABLED
+    // Bot is now slash-command only. Use /commandname in any server.
     // =========================
-    if (!content.startsWith(PREFIX)) return;
+    // if (!content.startsWith(PREFIX)) return;
 
-    const args = content.slice(PREFIX.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
+    // const args = content.slice(PREFIX.length).trim().split(/ +/);
+    // const commandName = args.shift().toLowerCase();
 
-    const command = commands.get(commandName);
-    if (!command) return;
+    // const command = commands.get(commandName);
+    // if (!command) return;
 
-    // =========================
-    // PERMISSION CHECK
-    // =========================
-    if (command.permissions && !message.member.permissions.has(command.permissions)) {
-        return message.reply('❌ You lack the administrative clearance permissions to invoke this asset.');
-    }
+    // // =========================
+    // // PERMISSION CHECK
+    // // =========================
+    // if (command.permissions && !message.member.permissions.has(command.permissions)) {
+    //     return message.reply('❌ You lack the administrative clearance permissions to invoke this asset.');
+    // }
 
-    // =========================
-    // RUN COMMAND (TWO SYSTEMS SUPPORTED)
-    // =========================
+    // // =========================
+    // // RUN COMMAND (TWO SYSTEMS SUPPORTED)
+    // // =========================
 
-    try {
-            return await command.run(message, args);
-        }
+    // try {
+    //         return await command.run(message, args);
+    //     }
 
-        const context = new UnifiedContext(message, client);
-        return await command.run(context);
+    //     const context = new UnifiedContext(message, client);
+    //     return await command.run(context);
 
-    } catch (err) {
-        console.error(err);
-        return message.reply('❌ System runtime execution failure.');
-    }
+    // } catch (err) {
+    //     console.error(err);
+    //     return message.reply('❌ System runtime execution failure.');
+    // }
 });
 // ==========================================================
 // INTERACTION CORE GATEWAY LISTENER
