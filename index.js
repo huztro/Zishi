@@ -38,6 +38,9 @@ const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
 const funCommandsList = require('./commands/fun.js');
 const helpCommand = require('./commands/help.js');
+const autoModSystem = require('./commands/automod.js');
+const autoReactSystem = require('./commands/autoreact.js');
+const levelingSystem = require('./commands/leveling.js');
 
 // =========================
 // CLIENT
@@ -379,6 +382,14 @@ client.once('ready', async () => {
 
     console.log(`🚀 Logged in as ${client.user.tag}`);
 
+    // =========================
+    // LOAD SYSTEMS
+    // =========================
+
+    autoModSystem(client);
+    autoReactSystem(client);
+    levelingSystem(client);
+
     giveawayModule.initializeGiveawayTrackers(client);
 
     // =========================
@@ -388,7 +399,7 @@ client.once('ready', async () => {
         'Made By Huztro',
         '/help - For Support',
         'Executing System Diagnostics',
-        'Ensuring Uptim Stability'
+        'Ensuring Uptime Stability'
     ];
 
     let index = 0;
