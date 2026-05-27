@@ -296,6 +296,82 @@ register(
     }
 );
 
+
+// =========================
+// LOAD EXTERNAL COMMAND MODULES
+// =========================
+
+const externalModules = [
+    moderationCommandsList,
+    applicationCommandsList,
+    economyModule,
+    funCommandsList
+];
+
+for (const module of externalModules) {
+
+    if (!module.commands) continue;
+
+    for (const cmd of module.commands) {
+
+        const slash = new SlashCommandBuilder()
+            .setName(cmd.name)
+            .setDescription(cmd.description || 'No description');
+
+        // OPTIONS
+        if (cmd.options) {
+
+            for (const option of cmd.options) {
+
+                if (option.type === 3) {
+
+                    slash.addStringOption(o => {
+
+                        o.setName(option.name)
+                         .setDescription(option.description)
+                         .setRequired(option.required || false);
+
+                        if (option.choices) {
+                            for (const choice of option.choices) {
+                                o.addChoices({
+                                    name: choice.name,
+                                    value: choice.value
+                                });
+                            }
+                        }
+
+                        return o;
+                    });
+                }
+
+                if (option.type === 4) {
+
+                    slash.addIntegerOption(o =>
+                        o.setName(option.name)
+                         .setDescription(option.description)
+                         .setRequired(option.required || false)
+                    );
+                }
+
+                if (option.type === 6) {
+
+                    slash.addUserOption(o =>
+                        o.setName(option.name)
+                         .setDescription(option.description)
+                         .setRequired(option.required || false)
+                    );
+                }
+            }
+        }
+
+        if (cmd.permissions) {
+            slash.setDefaultMemberPermissions(cmd.permissions);
+        }
+
+        register(slash, cmd.run);
+    }
+}
+
 // =========================
 // READY
 // =========================
