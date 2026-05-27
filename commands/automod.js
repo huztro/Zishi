@@ -1,69 +1,97 @@
 const {
-    Events,
+    SlashCommandBuilder,
     PermissionFlagsBits
 } = require('discord.js');
 
-module.exports = (client) => {
+const {
+    getSettings,
+    saveSettings
+} = require('../utils/settings');
 
-    const bannedWords = [
-        'shit',
-        'discord.gg/',
-        'fuck',
-        'nigger',
-        'bkl'
-    ];
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('automod')
+        .setDescription('Manage automod')
 
-    client.on(Events.MessageCreate, async (message) => {
+        .addSubcommand(sub =>
+            sub
+                .setName('enable')
+                .setDescription('Enable automod')
+        )
 
-        if (!message.guild) return;
-        if (message.author.bot) return;
+        .addSubcommand(sub =>
+            sub
+                .setName('disable')
+                .setDescription('Disable automod')
+        )
 
-        // Ignore admins/mods
-        if (
-            message.member.permissions.has(
-                PermissionFlagsBits.ManageMessages
-            )
-        ) return;
+        .addSubcommand(sub =>
+            sub
+                .setName('badwords-add')
+                .setDescription('Add badword')
+                .addStringOption(opt =>
+                    opt
+                        .setName('word')
+                        .setDescription('Word')
+                        .setRequired(true)
+                )
+        )
 
-        const content =
-            message.content.toLowerCase();
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.Administrator
+        ),
 
-        // =========================
-        // ANTI LINK
-        // =========================
+    async execute(interaction) {
 
-        const linkRegex =
-            /(https?:\/\/|discord\.gg\/|www\.)/i;
+        const settings =
+            getSettings(interaction.guild.id);
 
-        if (linkRegex.test(content)) {
+        const sub =
+            interaction.options.getSubcommand();
 
-            await message.delete()
-                .catch(() => {});
+        if (sub === 'enable') {
 
-            return message.channel.send({
-                content:
-                    `🚫 ${message.author} Links are not allowed.`
-            });
-        }
+            settings.automod = true;
 
-        // =========================
-        // BAD WORD FILTER
-        // =========================
-
-        const found =
-            bannedWords.find(word =>
-                content.includes(word)
+            saveSettings(
+                interaction.guild.id,
+                settings
             );
 
-        if (found) {
-
-            await message.delete()
-                .catch(() => {});
-
-            return message.channel.send({
-                content:
-                    `🛡️ ${message.author} Watch your language.`
-            });
+            return interaction.reply(
+                '✅ Automod enabled.'
+            );
         }
-    });
+
+        if (sub === 'disable') {
+
+            settings.automod = false;
+
+            saveSettings(
+                interaction.guild.id,
+                settings
+            );
+
+            return interaction.reply(
+                '❌ Automod disabled.'
+            );
+        }
+
+        if (sub === 'badwords-add') {
+
+            const word =
+                interaction.options.getString('word');
+
+            settings.badwords.push(word);
+
+            saveSettings(
+                interaction.guild.id,
+                settings
+            );
+
+            return interaction.reply(
+                `✅ Added badword: \`${word}\``
+            );
+        }
+    }
 };
