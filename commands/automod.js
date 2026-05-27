@@ -10,7 +10,7 @@ module.exports = (client) => {
         'discord.gg/',
         'fuck',
         'nigger',
-        'bkl',
+        'bkl'
     ];
 
     client.on(Events.MessageCreate, async (message) => {
