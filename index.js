@@ -467,12 +467,20 @@ client.once('ready', async () => {
 
     // Sync all commands to Discord Application Gateway
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-    const slashBuilders = Array.from(commands.values()).map(cmd => ({
-        name: cmd.name,
-        description: cmd.description,
-        options: cmd.options || [],
-        default_member_permissions: cmd.permissions ? cmd.permissions[0].toString() : null
-    }));
+const slashBuilders = [];
+
+for (const cmd of commands.values()) {
+
+    // skip invalid commands
+    if (!cmd.name || !cmd.description) continue;
+
+    // ONLY allow slash-safe commands
+    slashBuilders.push({
+        name: cmd.name.toLowerCase(),
+        description: cmd.description.slice(0, 100),
+        options: Array.isArray(cmd.options) ? cmd.options : []
+    });
+}
 
     try {
         console.log('🔄 Syncing dual integration routes to application server...');
