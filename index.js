@@ -466,7 +466,7 @@ client.once('ready', async () => {
     }
 
     // Sync all commands to Discord Application Gateway
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 const slashBuilders = [];
 
 for (const cmd of commands.values()) {
