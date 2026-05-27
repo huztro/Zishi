@@ -382,14 +382,6 @@ client.once('ready', async () => {
 
     console.log(`🚀 Logged in as ${client.user.tag}`);
 
-    // =========================
-    // LOAD SYSTEMS
-    // =========================
-
-    autoModSystem(client);
-    autoReactSystem(client);
-    levelingSystem(client);
-
     giveawayModule.initializeGiveawayTrackers(client);
 
     // =========================
