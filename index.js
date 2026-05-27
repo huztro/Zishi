@@ -471,10 +471,14 @@ const slashBuilders = [];
 
 for (const cmd of commands.values()) {
 
-    // skip invalid commands
-    if (!cmd.name || !cmd.description) continue;
+    if (
+        !cmd ||
+        typeof cmd.name !== "string" ||
+        typeof cmd.description !== "string"
+    ) continue;
 
-    // ONLY allow slash-safe commands
+    if (cmd.name.length > 32) continue;
+
     slashBuilders.push({
         name: cmd.name.toLowerCase(),
         description: cmd.description.slice(0, 100),
