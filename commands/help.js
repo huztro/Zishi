@@ -25,7 +25,7 @@ module.exports = {
             .setTitle('💎 Zishi Help Menu')
             .setDescription(
             `> Select a category below\n` +
-           `> Use \`.help <command>\` for details\n\n` +
+           `> Use \`!help <command>\` for details\n\n` +
            `💡 **Invite Bot:** [Click Here](https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot+applications.commands)\n` +
            `🎉 **Support Server:** [Join Here](https://discord.gg/ZQnThRAD9f)`
             )
