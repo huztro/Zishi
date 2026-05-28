@@ -108,6 +108,74 @@ module.exports = {
             }
         },
 
+        {
+    name: 'addmoney',
+    description: 'Add money to a user wallet.',
+    options: [
+        { name: 'user', description: 'Target user', type: 6, required: true },
+        { name: 'amount', description: 'Amount to add', type: 4, required: true }
+    ],
+
+    async run(ctx, args) {
+
+        const member = ctx.isCommand?.()
+            ? ctx.member
+            : ctx.member;
+
+        // Admin Check
+        if (!member.permissions.has('Administrator')) {
+            return ecoReply(ctx, {
+                content: '❌ You need Administrator permission.',
+                ephemeral: true
+            });
+        }
+
+        let target, amount;
+
+        if (ctx.isCommand?.()) {
+            target = ctx.options.getUser('user');
+            amount = ctx.options.getInteger('amount');
+        } else {
+            target = ctx.mentions?.users?.first();
+            amount = parseInt(args?.[1]);
+        }
+
+        if (!target) {
+            return ecoReply(ctx, {
+                content: '❌ Please mention a user.',
+                ephemeral: true
+            });
+        }
+
+        if (!amount || amount <= 0) {
+            return ecoReply(ctx, {
+                content: '❌ Invalid amount.',
+                ephemeral: true
+            });
+        }
+
+        const profile = getProfile(target.id);
+
+        profile.wallet += amount;
+
+        updateProfile(target.id, profile);
+
+        return ecoReply(ctx, {
+            embeds: [
+                new EmbedBuilder()
+                    .setTitle('💸 Money Added')
+                    .setDescription(
+                        `Added **$${amount.toLocaleString()}** to ${target.username}'s wallet.`
+                    )
+                    .addFields({
+                        name: '💰 New Wallet Balance',
+                        value: `\`$${profile.wallet.toLocaleString()}\``
+                    })
+                    .setColor(0x2ECC71)
+            ]
+        });
+    }
+},
         // ==========================================
         // DAILY
         // ==========================================
@@ -633,7 +701,8 @@ module.exports = {
             inv: 'inventory',
             transfer: 'transfer',
             ecolb: 'ecolb',
-            leaderboard: 'ecolb'
+            leaderboard: 'ecolb',
+            addmoney: 'addmoney'
         };
 
         const cmdName = commandsMap[command];
