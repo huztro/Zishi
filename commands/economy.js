@@ -10,7 +10,7 @@ const path = require('path');
 const DB_PATH = path.join(__dirname, '../economy.json');
 
 // Economy channel for no-prefix usage (optional, set to null to disable)
-const ECONOMY_CHANNEL_ID = '1509172933195595816';
+const ECONOMY_CHANNEL_ID = '1509293693687828583';
 
 if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify({}, null, 4));
