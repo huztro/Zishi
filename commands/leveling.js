@@ -1,3 +1,9 @@
+/**
+ * Zishi — Leveling System
+ * Supports BOTH Slash Commands AND Prefix Commands (!)
+ * XP tracking, level-up messages, leaderboard, rank, reset
+ */
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -513,5 +519,87 @@ module.exports = {
         }
 
         saveLevels(levels);
+    },
+
+    // ==========================================
+    // PREFIX COMMAND HANDLER
+    // Called from index.js messageCreate event
+    // Handles: !rank, !leaderboard, !resetlevels
+    // ==========================================
+    async handlePrefix(message, commandName, args) {
+        if (!message.guild) return false;
+
+        const levels = getLevels();
+        const settings = getSettings(message.guild.id);
+
+        // RANK
+        if (commandName === 'rank') {
+            let target = message.mentions.users.first() || message.author;
+
+            const key = `${message.guild.id}_${target.id}`;
+            const profile = levels[key] || { xp: 0, level: 1 };
+            const neededXP = profile.level * 100;
+
+            const embed = new EmbedBuilder()
+                .setTitle(`${target.username}'s Rank`)
+                .setColor(0x00FFCC)
+                .setThumbnail(target.displayAvatarURL({ size: 256 }))
+                .addFields(
+                    { name: '📈 Level', value: `\`${profile.level}\``, inline: true },
+                    { name: '⚡ XP', value: `\`${profile.xp}/${neededXP}\``, inline: true }
+                );
+
+            await message.channel.send({ embeds: [embed] });
+            return true;
+        }
+
+        // LEADERBOARD
+        if (commandName === 'leaderboard' || commandName === 'lvllb') {
+            const filtered = Object.entries(levels)
+                .filter(([key]) => key.startsWith(message.guild.id))
+                .sort((a, b) => b[1].level !== a[1].level ? b[1].level - a[1].level : b[1].xp - a[1].xp)
+                .slice(0, 10);
+
+            let desc = '';
+            for (let i = 0; i < filtered.length; i++) {
+                const userId = filtered[i][0].split('_')[1];
+                const user = await message.client.users.fetch(userId).catch(() => null);
+                desc += `**#${i + 1}** ${user ? user.username : 'Unknown'} — Level \`${filtered[i][1].level}\` (${filtered[i][1].xp} XP)\n`;
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle('🏆 Level Leaderboard')
+                .setDescription(desc || 'No data yet.')
+                .setColor(0xFFD700);
+
+            await message.channel.send({ embeds: [embed] });
+            return true;
+        }
+
+        // RESETLEVELS (admin only)
+        if (commandName === 'resetlevels') {
+            if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+                return message.reply({ content: '❌ Administrator permission required.' });
+            }
+
+            const target = message.mentions.users.first();
+
+            if (target) {
+                const key = `${message.guild.id}_${target.id}`;
+                delete levels[key];
+                saveLevels(levels);
+                await message.reply(`✅ Reset levels for **${target.username}**.`);
+            } else {
+                // Reset all for this guild
+                for (const key of Object.keys(levels)) {
+                    if (key.startsWith(message.guild.id)) delete levels[key];
+                }
+                saveLevels(levels);
+                await message.reply('✅ Reset all levels for this server.');
+            }
+            return true;
+        }
+
+        return false;
     }
 };
