@@ -23,7 +23,7 @@ function getProfile(userId) {
         data[userId] = {
             wallet: 500,
             bank: 0,
-            bankSpace: 2500,
+            bankSpace: 1000000000,
             inventory: {},
             lastDaily: 0,
             lastWork: 0,
