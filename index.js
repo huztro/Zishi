@@ -1,6 +1,7 @@
 /**
- * Zishi — Full Slash Command Based System
+ * Zishi — Full Featured Discord Bot
  * Discord.js v14
+ * Supports BOTH Slash Commands (/) AND Prefix Commands (!)
  */
 
 const {
@@ -30,7 +31,7 @@ require('dotenv').config();
 // =========================
 // MODULE IMPORTS
 // =========================
-const moderationCommandsList = require('./commands/moderation.js');
+const moderationModule = require('./commands/moderation.js');
 const applicationCommandsList = require('./commands/applications.js');
 const welcomeModule = require('./commands/welcome.js');
 const invitesModule = require('./commands/invites.js');
@@ -43,6 +44,18 @@ const autoReactSystem = require('./commands/autoreact.js');
 const levelingSystem = require('./commands/leveling.js');
 
 // =========================
+// PREFIX CONFIG
+// =========================
+const DEFAULT_PREFIX = '!';
+
+function getPrefix(guildId) {
+    if (global.prefixes && global.prefixes[guildId]) {
+        return global.prefixes[guildId];
+    }
+    return DEFAULT_PREFIX;
+}
+
+// =========================
 // CLIENT
 // =========================
 const client = new Client({
@@ -51,7 +64,8 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildModeration,
-        GatewayIntentBits.GuildBans
+        GatewayIntentBits.GuildBans,
+        GatewayIntentBits.MessageContent   // Required for prefix commands
     ],
     partials: [
         Partials.Message,
@@ -305,17 +319,24 @@ register(
 // =========================
 
 const externalModules = [
-    moderationCommandsList,
+    moderationModule,       // { commands: [...] }
     applicationCommandsList,
     economyModule,
     funCommandsList
 ];
 
-for (const module of externalModules) {
+for (const mod of externalModules) {
 
-    if (!module.commands) continue;
+    // Support both array exports and { commands: [...] } exports
+    const cmdList = Array.isArray(mod) ? mod : (mod.commands || []);
 
-    for (const cmd of module.commands) {
+    for (const cmd of cmdList) {
+
+        // Some modules (fun, applications) export SlashCommandBuilder directly
+        if (cmd.data && typeof cmd.data.toJSON === 'function') {
+            register(cmd.data, cmd.run || cmd.execute);
+            continue;
+        }
 
         const slash = new SlashCommandBuilder()
             .setName(cmd.name)
@@ -326,41 +347,53 @@ for (const module of externalModules) {
 
             for (const option of cmd.options) {
 
+                // STRING (type 3)
                 if (option.type === 3) {
-
                     slash.addStringOption(o => {
-
                         o.setName(option.name)
-                         .setDescription(option.description)
+                         .setDescription(option.description || 'No description')
                          .setRequired(option.required || false);
-
                         if (option.choices) {
                             for (const choice of option.choices) {
-                                o.addChoices({
-                                    name: choice.name,
-                                    value: choice.value
-                                });
+                                o.addChoices({ name: choice.name, value: choice.value });
                             }
                         }
-
                         return o;
                     });
                 }
 
+                // INTEGER (type 4)
                 if (option.type === 4) {
-
                     slash.addIntegerOption(o =>
                         o.setName(option.name)
-                         .setDescription(option.description)
+                         .setDescription(option.description || 'No description')
                          .setRequired(option.required || false)
                     );
                 }
 
+                // USER (type 6)
                 if (option.type === 6) {
-
                     slash.addUserOption(o =>
                         o.setName(option.name)
-                         .setDescription(option.description)
+                         .setDescription(option.description || 'No description')
+                         .setRequired(option.required || false)
+                    );
+                }
+
+                // CHANNEL (type 7)
+                if (option.type === 7) {
+                    slash.addChannelOption(o =>
+                        o.setName(option.name)
+                         .setDescription(option.description || 'No description')
+                         .setRequired(option.required || false)
+                    );
+                }
+
+                // ROLE (type 8)
+                if (option.type === 8) {
+                    slash.addRoleOption(o =>
+                        o.setName(option.name)
+                         .setDescription(option.description || 'No description')
                          .setRequired(option.required || false)
                     );
                 }
@@ -372,6 +405,77 @@ for (const module of externalModules) {
         }
 
         register(slash, cmd.run);
+    }
+}
+
+// =========================
+// REGISTER SPECIAL SLASH COMMANDS
+// (modules that export { data, execute } directly)
+// =========================
+
+// AutoMod slash command
+if (autoModSystem.data) {
+    commands.set(autoModSystem.data.name, {
+        data: autoModSystem.data,
+        run: autoModSystem.execute.bind(autoModSystem)
+    });
+    slashCommands.push(autoModSystem.data.toJSON());
+}
+
+// AutoReact slash command
+if (autoReactSystem.data) {
+    commands.set(autoReactSystem.data.name, {
+        data: autoReactSystem.data,
+        run: autoReactSystem.execute.bind(autoReactSystem)
+    });
+    slashCommands.push(autoReactSystem.data.toJSON());
+}
+
+// Leveling slash command
+if (levelingSystem.data) {
+    commands.set(levelingSystem.data.name, {
+        data: levelingSystem.data,
+        run: levelingSystem.execute.bind(levelingSystem)
+    });
+    slashCommands.push(levelingSystem.data.toJSON());
+}
+
+// Welcome commands
+if (welcomeModule.commands) {
+    for (const cmd of welcomeModule.commands) {
+        if (cmd.data) {
+            commands.set(cmd.data.name, {
+                data: cmd.data,
+                run: cmd.run.bind(cmd)
+            });
+            slashCommands.push(cmd.data.toJSON());
+        }
+    }
+}
+
+// Invite commands
+if (invitesModule.commands) {
+    for (const cmd of invitesModule.commands) {
+        if (cmd.data) {
+            commands.set(cmd.data.name, {
+                data: cmd.data,
+                run: cmd.run.bind(cmd)
+            });
+            slashCommands.push(cmd.data.toJSON());
+        }
+    }
+}
+
+// Giveaway commands
+if (giveawayModule.commands) {
+    for (const cmd of giveawayModule.commands) {
+        if (cmd.data) {
+            commands.set(cmd.data.name, {
+                data: cmd.data,
+                run: cmd.run.bind(cmd)
+            });
+            slashCommands.push(cmd.data.toJSON());
+        }
     }
 }
 
@@ -573,6 +677,133 @@ client.on('interactionCreate', async (interaction) => {
                 ephemeral: true
             });
         }
+    }
+});
+
+// =========================
+// MESSAGE CREATE (Prefix + AutoMod + Leveling)
+// =========================
+client.on('messageCreate', async (message) => {
+
+    if (!message.guild) return;
+    if (message.author.bot) return;
+
+    // =========================
+    // AUTOMOD (runs on every message)
+    // =========================
+    try {
+        await autoModSystem.handleAutoMod(message);
+    } catch (err) {
+        console.error('[AutoMod Error]', err);
+    }
+
+    // =========================
+    // LEVELING XP (runs on every message)
+    // =========================
+    try {
+        await levelingSystem.handleMessage(message);
+    } catch (err) {
+        console.error('[Leveling Error]', err);
+    }
+
+    // =========================
+    // ECONOMY CHANNEL (no-prefix channel)
+    // =========================
+    try {
+        await economyModule.messageRun(message);
+    } catch (err) {
+        console.error('[Economy Channel Error]', err);
+    }
+
+    // =========================
+    // PREFIX COMMANDS
+    // =========================
+    const prefix = getPrefix(message.guild.id);
+    if (!message.content.startsWith(prefix)) return;
+
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+
+    if (!commandName) return;
+
+    // ---- HELP ----
+    if (commandName === 'help') {
+        try {
+            await helpCommand.run(message);
+        } catch (err) {
+            console.error('[Prefix Help Error]', err);
+        }
+        return;
+    }
+
+    // ---- PING ----
+    if (commandName === 'ping') {
+        const sent = await message.channel.send('🏓 Pinging...');
+        const latency = sent.createdTimestamp - message.createdTimestamp;
+        await sent.edit(`🏓 Pong!\nAPI: \`${client.ws.ping}ms\`\nLatency: \`${latency}ms\``);
+        return;
+    }
+
+    // ---- STATUS ----
+    if (commandName === 'status') {
+        const health = getHealthMetrics(client);
+        const embed = new EmbedBuilder()
+            .setTitle('🤖 Bot Status')
+            .setColor(0x00FFCC)
+            .addFields(
+                { name: '📡 Ping', value: `\`${health.ping}\``, inline: true },
+                { name: '⏳ Uptime', value: `\`${health.uptime}\``, inline: true },
+                { name: '💾 RAM', value: `\`${health.memory}\``, inline: true },
+                { name: '🏢 Guilds', value: `\`${health.guilds}\``, inline: true },
+                { name: '👥 Users', value: `\`${health.users}\``, inline: true }
+            )
+            .setTimestamp();
+        await message.channel.send({ embeds: [embed] });
+        return;
+    }
+
+    // ---- SETPREFIX ----
+    if (commandName === 'setprefix') {
+        if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return message.reply({ content: '❌ Administrator permission required.' });
+        }
+        const newPrefix = args[0];
+        if (!newPrefix) return message.reply({ content: '❌ Usage: `!setprefix <prefix>`' });
+        global.prefixes ??= {};
+        global.prefixes[message.guild.id] = newPrefix;
+        return message.reply({ content: `✅ Prefix updated to **${newPrefix}**` });
+    }
+
+    // ---- MODERATION COMMANDS ----
+    try {
+        const handled = await moderationModule.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix Mod Error]', err);
+    }
+
+    // ---- ECONOMY COMMANDS ----
+    try {
+        const handled = await economyModule.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix Economy Error]', err);
+    }
+
+    // ---- LEVELING COMMANDS ----
+    try {
+        const handled = await levelingSystem.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix Leveling Error]', err);
+    }
+
+    // ---- AUTOMOD CONFIG ----
+    try {
+        const handled = await autoModSystem.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix AutoMod Error]', err);
     }
 });
 

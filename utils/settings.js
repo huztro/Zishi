@@ -25,7 +25,20 @@ function getSettings(guildId) {
             automod: false,
             autoreact: false,
             badwords: [],
-            autoreacts: []
+            autoreacts: [],
+            automodConfig: {
+                enabled: false,
+                spamFilter: true,
+                capsFilter: true,
+                mentionFilter: true,
+                linkFilter: false,
+                badwordFilter: true,
+                spamThreshold: 5,
+                spamWindow: 5000,
+                capsThreshold: 70,
+                mentionThreshold: 5,
+                logChannel: null
+            }
         };
 
         fs.writeFileSync(

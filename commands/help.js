@@ -41,8 +41,9 @@ module.exports = {
             .setPlaceholder('📁 Select a category')
             .addOptions(
                 new StringSelectMenuOptionBuilder().setLabel('Moderation').setValue('mod').setEmoji('🛡️'),
-                new StringSelectMenuOptionBuilder().setLabel('Systems').setValue('sys').setEmoji('🎟️'),
+                new StringSelectMenuOptionBuilder().setLabel('Systems & AutoMod').setValue('sys').setEmoji('🎟️'),
                 new StringSelectMenuOptionBuilder().setLabel('Economy').setValue('eco').setEmoji('💰'),
+                new StringSelectMenuOptionBuilder().setLabel('Leveling').setValue('lvl').setEmoji('📈'),
                 new StringSelectMenuOptionBuilder().setLabel('Giveaways').setValue('give').setEmoji('🎁'),
                 new StringSelectMenuOptionBuilder().setLabel('Premium').setValue('prem').setEmoji('👑'),
                 new StringSelectMenuOptionBuilder().setLabel('Fun & Games').setValue('fun').setEmoji('🎮')
@@ -72,13 +73,43 @@ module.exports = {
 
                 case 'mod':
                     embed = new EmbedBuilder()
-                        .setTitle('🛡️ Moderation')
+                        .setTitle('🛡️ Moderation (30+ Commands)')
                         .setColor(0x1A1C1E)
+                        .setDescription('All commands work with `/` slash AND `!` prefix.\n\u200b')
                         .addFields(
-                            { name: 'purge', value: 'Delete messages' },
-                            { name: 'kick', value: 'Kick user' },
-                            { name: 'ban', value: 'Ban user' },
-                            { name: 'warn', value: 'Warn user' }
+                            { name: '👢 kick', value: 'Kick a member', inline: true },
+                            { name: '🔨 ban', value: 'Permanently ban', inline: true },
+                            { name: '⏱️ tempban', value: 'Temp ban (minutes)', inline: true },
+                            { name: '🧹 softban', value: 'Ban + unban (clears msgs)', inline: true },
+                            { name: '🔓 unban', value: 'Unban by user ID', inline: true },
+                            { name: '🔇 mute', value: 'Mute (Muted role)', inline: true },
+                            { name: '🔊 unmute', value: 'Remove mute', inline: true },
+                            { name: '⏳ timeout', value: 'Timeout (minutes)', inline: true },
+                            { name: '✅ untimeout', value: 'Remove timeout', inline: true },
+                            { name: '⚠️ warn', value: 'Issue a warning', inline: true },
+                            { name: '🗑️ warnremove', value: 'Remove warning by #', inline: true },
+                            { name: '📋 checkwarns', value: 'View warnings', inline: true },
+                            { name: '🧹 clearwarns', value: 'Clear all warnings', inline: true },
+                            { name: '💥 purge', value: 'Bulk delete messages', inline: true },
+                            { name: '☢️ nuke', value: 'Clone & wipe channel', inline: true },
+                            { name: '🔒 lock', value: 'Lock channel', inline: true },
+                            { name: '🔓 unlock', value: 'Unlock channel', inline: true },
+                            { name: '🌐 lockdown', value: 'Lock ALL channels', inline: true },
+                            { name: '🌐 unlockdown', value: 'Unlock ALL channels', inline: true },
+                            { name: '🐢 slowmode', value: 'Set slowmode (0=off)', inline: true },
+                            { name: '➕ roleadd', value: 'Add role to member', inline: true },
+                            { name: '➖ roleremove', value: 'Remove role', inline: true },
+                            { name: '🎭 rolecreate', value: 'Create a role', inline: true },
+                            { name: '🗑️ roledelete', value: 'Delete a role', inline: true },
+                            { name: '📝 nick', value: 'Change nickname', inline: true },
+                            { name: '📢 channelcreate', value: 'Create text channel', inline: true },
+                            { name: '🗑️ channeldelete', value: 'Delete a channel', inline: true },
+                            { name: '🔇 deafen', value: 'Server-deafen in voice', inline: true },
+                            { name: '🔊 undeafen', value: 'Remove deafen', inline: true },
+                            { name: '👢 voicekick', value: 'Disconnect from voice', inline: true },
+                            { name: '🔍 whois', value: 'Member info', inline: true },
+                            { name: '🏢 serverinfo', value: 'Server info', inline: true },
+                            { name: '🧹 clearinfractions', value: 'Wipe all server warns', inline: true }
                         );
                     break;
 
@@ -87,8 +118,17 @@ module.exports = {
                         .setTitle('🎟️ Systems')
                         .setColor(0x1A1C1E)
                         .addFields(
-                            { name: 'ticket setup', value: 'Create tickets system' },
-                            { name: 'welcome setup', value: 'Setup welcome system' }
+                            { name: 'setup-tickets', value: 'Create ticket panel' },
+                            { name: 'setup-verification', value: 'Create verify panel' },
+                            { name: 'welcomesetup', value: 'Setup welcome messages' },
+                            { name: 'automod enable/disable', value: 'Toggle AutoMod' },
+                            { name: 'automod status', value: 'View AutoMod config' },
+                            { name: 'automod spam/caps/mentions/links', value: 'Configure filters' },
+                            { name: 'automod badwords-add/remove', value: 'Manage bad words' },
+                            { name: 'automod autoreact-add/remove', value: 'Manage autoreacts' },
+                            { name: 'leveling enable/disable', value: 'Toggle XP system' },
+                            { name: 'leveling rank', value: 'View your level' },
+                            { name: 'leveling leaderboard', value: 'Top levels' }
                         );
                     break;
 
@@ -96,10 +136,39 @@ module.exports = {
                     embed = new EmbedBuilder()
                         .setTitle('💰 Economy')
                         .setColor(0x1A1C1E)
+                        .setDescription('All commands work with `/` slash AND `!` prefix.\n\u200b')
                         .addFields(
-                            { name: 'balance', value: 'Check money' },
-                            { name: 'daily', value: 'Claim reward' },
-                            { name: 'work', value: 'Earn money' }
+                            { name: '💰 bal', value: 'Check balance', inline: true },
+                            { name: '📆 daily', value: 'Claim daily ($1,000)', inline: true },
+                            { name: '⚙️ work', value: 'Work for money (1h cd)', inline: true },
+                            { name: '🏦 deposit', value: 'Deposit to bank', inline: true },
+                            { name: '💵 withdraw', value: 'Withdraw from bank', inline: true },
+                            { name: '💸 transfer', value: 'Send money to user', inline: true },
+                            { name: '🦹 rob', value: 'Rob another user (30m cd)', inline: true },
+                            { name: '🎲 gamble', value: 'Gamble your money', inline: true },
+                            { name: '🛒 shop', value: 'View item shop', inline: true },
+                            { name: '🛍️ buy', value: 'Buy an item', inline: true },
+                            { name: '💸 sell', value: 'Sell an item (50%)', inline: true },
+                            { name: '🎒 inventory', value: 'View your items', inline: true },
+                            { name: '🏆 ecolb', value: 'Economy leaderboard', inline: true }
+                        );
+                    break;
+
+                case 'lvl':
+                    embed = new EmbedBuilder()
+                        .setTitle('📈 Leveling System')
+                        .setColor(0x1A1C1E)
+                        .setDescription('XP is earned by sending messages (10s cooldown per user).\n\u200b')
+                        .addFields(
+                            { name: '/leveling enable', value: 'Enable XP system', inline: true },
+                            { name: '/leveling disable', value: 'Disable XP system', inline: true },
+                            { name: '/leveling rank', value: 'View your level & XP', inline: true },
+                            { name: '/leveling leaderboard', value: 'Top 10 levels', inline: true },
+                            { name: '/leveling channel-add', value: 'Restrict XP to channel', inline: true },
+                            { name: '/leveling channel-remove', value: 'Remove XP channel', inline: true },
+                            { name: '!rank [@user]', value: 'Prefix: view rank', inline: true },
+                            { name: '!leaderboard', value: 'Prefix: level leaderboard', inline: true },
+                            { name: '!resetlevels [@user]', value: 'Admin: reset levels', inline: true }
                         );
                     break;
 
@@ -108,8 +177,8 @@ module.exports = {
                         .setTitle('🎁 Giveaways')
                         .setColor(0x1A1C1E)
                         .addFields(
-                            { name: 'gstart', value: 'Start giveaway' },
-                            { name: 'greroll', value: 'Reroll winner' }
+                            { name: 'gstart', value: 'Start a giveaway' },
+                            { name: 'greroll', value: 'Reroll a winner' }
                         );
                     break;
 
@@ -118,8 +187,8 @@ module.exports = {
                         .setTitle('👑 Premium Tools')
                         .setColor(0x1A1C1E)
                         .addFields(
-                            { name: 'antiraid', value: 'Anti raid system' },
-                            { name: 'backup', value: 'Server backup' },
+                            { name: 'premium-aichat', value: 'AI chatbot setup' },
+                            { name: 'premium-backup', value: 'Server backup' },
                             { name: 'status', value: 'System status' }
                         );
                     break;
@@ -129,9 +198,10 @@ module.exports = {
                         .setTitle('🎮 Fun & Games')
                         .setColor(0x1A1C1E)
                         .addFields(
-                            { name: 'joke', value: 'Random jokes' },
-                            { name: 'iqtest', value: 'IQ test' },
-                            { name: 'hug', value: 'Hug someone' }
+                            { name: 'rps', value: 'Rock Paper Scissors' },
+                            { name: 'dice', value: 'Roll dice' },
+                            { name: 'coin', value: 'Flip a coin' },
+                            { name: '8ball', value: 'Ask the magic 8 ball' }
                         );
                     break;
             }
