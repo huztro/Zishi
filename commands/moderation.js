@@ -14,9 +14,8 @@ const {
 // PREMIUM EMBED CORE
 // ==========================================
 function createPremiumEmbed(title, description = '', executioner) {
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setTitle(`🔹 ${title}`)
-        .setDescription(description)
         .setColor(0x1A1C1E)
         .setThumbnail('https://i.postimg.cc/d3zdwyjL/OIP.webp')
         .setFooter({
@@ -24,6 +23,12 @@ function createPremiumEmbed(title, description = '', executioner) {
             iconURL: executioner.displayAvatarURL({ size: 256 })
         })
         .setTimestamp();
+
+    if (description && description.trim().length > 0) {
+        embed.setDescription(description);
+    }
+
+    return embed;
 }
 
 // ==========================================
@@ -103,9 +108,7 @@ async function getMuteRole(guild) {
 // ==========================================
 // COMMANDS EXPORT
 // ==========================================
-module.exports = {
-
-    commands: [
+module.exports = [
 
 /* =========================
    1. KICK
@@ -1140,34 +1143,5 @@ module.exports = {
     }
 }
 
-    ], // end commands array
-
-    // ==========================================
-    // PREFIX COMMAND HANDLER
-    // Called from index.js messageCreate event
-    // ==========================================
-    async handlePrefix(message, commandName, args) {
-        if (!message.guild) return;
-
-        const cmd = this.commands.find(c => c.name === commandName);
-        if (!cmd) return false;
-
-        // Permission check for prefix commands
-        if (cmd.permissions) {
-            const member = message.member;
-            if (!member.permissions.has(cmd.permissions)) {
-                return message.reply({ content: '❌ You lack the required permissions.' });
-            }
-        }
-
-        try {
-            await cmd.run(message, args);
-        } catch (err) {
-            console.error(`[Moderation Prefix Error] ${commandName}:`, err);
-            message.reply({ content: '❌ Command failed.' }).catch(() => {});
-        }
-
-        return true;
-    }
-};
+]; // end commands array
 
