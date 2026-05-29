@@ -73,8 +73,7 @@ const SHOP_ITEMS = {
     }
 };
 
-module.exports = {
-    commands: [
+module.exports = [
 
         // ==========================================
         // BALANCE
@@ -642,75 +641,4 @@ module.exports = {
             }
         }
 
-    ], // end commands array
-
-    // ==========================================
-    // PREFIX COMMAND HANDLER
-    // Called from index.js messageCreate event
-    // ==========================================
-    async handlePrefix(message, commandName, args) {
-        if (!message.guild) return false;
-
-        const aliases = {
-            balance: 'bal',
-            inv: 'inventory',
-            lb: 'ecolb',
-            leaderboard: 'ecolb'
-        };
-
-        const resolvedName = aliases[commandName] || commandName;
-        const cmd = this.commands.find(c => c.name === resolvedName);
-        if (!cmd) return false;
-
-        try {
-            await cmd.run(message, args);
-        } catch (err) {
-            console.error(`[Economy Prefix Error] ${commandName}:`, err);
-            message.reply({ content: '❌ Command failed.' }).catch(() => {});
-        }
-
-        return true;
-    },
-
-    // ==========================================
-    // ECONOMY CHANNEL SYSTEM (no-prefix, channel-specific)
-    // Only works inside ECONOMY_CHANNEL_ID
-    // ==========================================
-    async messageRun(message) {
-        if (!message.guild) return;
-        if (message.author.bot) return;
-        if (!ECONOMY_CHANNEL_ID) return;
-        if (message.channel.id !== ECONOMY_CHANNEL_ID) return;
-
-        const args = message.content.trim().split(/ +/);
-        const command = args.shift().toLowerCase();
-
-        const commandsMap = {
-            daily: 'daily',
-            bal: 'bal',
-            balance: 'bal',
-            work: 'work',
-            deposit: 'deposit',
-            withdraw: 'withdraw',
-            rob: 'rob',
-            gamble: 'gamble',
-            shop: 'shop',
-            buy: 'buy',
-            sell: 'sell',
-            inventory: 'inventory',
-            inv: 'inventory',
-            transfer: 'transfer',
-            ecolb: 'ecolb',
-            leaderboard: 'ecolb',
-            addmoney: 'addmoney'
-        };
-
-        const cmdName = commandsMap[command];
-        if (!cmdName) return;
-
-        const commandData = this.commands.find(c => c.name === cmdName);
-        if (!commandData) return;
-
-        commandData.run(message, args);
-    }
-};
+]; // end commands array

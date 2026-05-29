@@ -319,9 +319,9 @@ register(
 // =========================
 
 const externalModules = [
-    moderationModule,       // { commands: [...] }
+    moderationModule,       // plain array of commands
     applicationCommandsList,
-    economyModule,
+    economyModule,          // plain array of commands
     funCommandsList
 ];
 
@@ -710,7 +710,20 @@ client.on('messageCreate', async (message) => {
     // ECONOMY CHANNEL (no-prefix channel)
     // =========================
     try {
-        await economyModule.messageRun(message);
+        const ECONOMY_CHANNEL_ID = '1509293693687828583';
+        if (ECONOMY_CHANNEL_ID && message.channel.id === ECONOMY_CHANNEL_ID) {
+            const ecoArgs = message.content.trim().split(/ +/);
+            const ecoCmd = ecoArgs.shift().toLowerCase();
+            const ecoAliases = {
+                balance: 'bal', inv: 'inventory',
+                lb: 'ecolb', leaderboard: 'ecolb'
+            };
+            const ecoName = ecoAliases[ecoCmd] || ecoCmd;
+            const ecoCommand = commands.get(ecoName);
+            if (ecoCommand) {
+                await ecoCommand.run(message, ecoArgs);
+            }
+        }
     } catch (err) {
         console.error('[Economy Channel Error]', err);
     }
@@ -774,20 +787,23 @@ client.on('messageCreate', async (message) => {
         return message.reply({ content: `✅ Prefix updated to **${newPrefix}**` });
     }
 
-    // ---- MODERATION COMMANDS ----
+    // ---- MODERATION + ECONOMY COMMANDS (via commands Map) ----
     try {
-        const handled = await moderationModule.handlePrefix(message, commandName, args);
-        if (handled) return;
+        const ecoAliases = { balance: 'bal', inv: 'inventory', lb: 'ecolb', leaderboard: 'ecolb' };
+        const resolvedName = ecoAliases[commandName] || commandName;
+        const cmd = commands.get(resolvedName);
+        if (cmd) {
+            // Permission check for commands that declare required permissions
+            const cmdDef = [...moderationModule, ...economyModule].find(c => c.name === resolvedName);
+            if (cmdDef?.permissions && !message.member.permissions.has(cmdDef.permissions)) {
+                return message.reply({ content: '❌ You lack the required permissions.' });
+            }
+            await cmd.run(message, args);
+            return;
+        }
     } catch (err) {
-        console.error('[Prefix Mod Error]', err);
-    }
-
-    // ---- ECONOMY COMMANDS ----
-    try {
-        const handled = await economyModule.handlePrefix(message, commandName, args);
-        if (handled) return;
-    } catch (err) {
-        console.error('[Prefix Economy Error]', err);
+        console.error('[Prefix Command Error]', err);
+        message.reply({ content: '❌ Command failed.' }).catch(() => {});
     }
 
     // ---- LEVELING COMMANDS ----
