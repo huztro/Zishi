@@ -32,10 +32,13 @@ const spamTracker = new Map();
 // AUTOMOD MESSAGE HANDLER
 // Called from index.js on every messageCreate
 // ==========================================
-async function handleAutoMod(message) {
+async function handleAutoMod(message, ownerId) {
     if (!message.guild) return;
     if (message.author.bot) return;
     if (!message.member) return;
+
+    // Owner always bypasses AutoMod entirely
+    if (ownerId && message.author.id === ownerId) return;
 
     // Skip admins and moderators
     if (message.member.permissions.has(PermissionFlagsBits.ManageMessages)) return;
@@ -170,17 +173,6 @@ async function handleAutoMod(message) {
         }
     }
 
-    // ==========================================
-    // 6. AUTOREACT
-    // ==========================================
-    if (settings.autoreact && settings.autoreacts?.length > 0) {
-        const lower = content.toLowerCase();
-        for (const react of settings.autoreacts) {
-            if (lower.includes(react.trigger)) {
-                await message.react(react.emoji).catch(() => {});
-            }
-        }
-    }
 }
 
 // ==========================================

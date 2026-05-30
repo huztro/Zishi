@@ -13,88 +13,53 @@ const {
 const fs = require('fs');
 const path = require('path');
 
-const SETTINGS_DB =
-path.join(__dirname, '../data/guildSettings.json');
+// Use the shared settings utility so all modules stay in sync
+const {
+    getSettings: _getSettings,
+    saveSettings
+} = require('../utils/settings');
 
 const LEVEL_DB =
-path.join(__dirname, '../data/levels.json');
-
-if (!fs.existsSync(SETTINGS_DB)) {
-    fs.writeFileSync(
-        SETTINGS_DB,
-        JSON.stringify({}, null, 4)
-    );
-}
+    path.join(__dirname, '../data/levels.json');
 
 if (!fs.existsSync(LEVEL_DB)) {
-    fs.writeFileSync(
-        LEVEL_DB,
-        JSON.stringify({}, null, 4)
-    );
+    fs.writeFileSync(LEVEL_DB, JSON.stringify({}, null, 4));
 }
 
 // ==========================================
-// SETTINGS FUNCTIONS
+// SETTINGS HELPER
+// Ensures leveling is always an object, not a legacy boolean
 // ==========================================
-
 function getSettings(guildId) {
+    const settings = _getSettings(guildId);
 
-    const data =
-        JSON.parse(
-            fs.readFileSync(SETTINGS_DB, 'utf8')
-        );
-
-    if (!data[guildId]) {
-
-        data[guildId] = {
-            leveling: {
-                enabled: false,
-                channels: [],
-                multiplier: 1
-            }
+    // Migrate legacy boolean value to proper object
+    if (!settings.leveling || typeof settings.leveling !== 'object') {
+        settings.leveling = {
+            enabled: false,
+            channels: [],
+            multiplier: 1
         };
-
-        fs.writeFileSync(
-            SETTINGS_DB,
-            JSON.stringify(data, null, 4)
-        );
+        saveSettings(guildId, settings);
     }
 
-    return data[guildId];
-}
+    if (!Array.isArray(settings.leveling.channels)) {
+        settings.leveling.channels = [];
+    }
 
-function saveSettings(guildId, settings) {
-
-    const data =
-        JSON.parse(
-            fs.readFileSync(SETTINGS_DB, 'utf8')
-        );
-
-    data[guildId] = settings;
-
-    fs.writeFileSync(
-        SETTINGS_DB,
-        JSON.stringify(data, null, 4)
-    );
+    return settings;
 }
 
 // ==========================================
-// LEVEL FUNCTIONS
+// LEVEL DB FUNCTIONS
 // ==========================================
 
 function getLevels() {
-
-    return JSON.parse(
-        fs.readFileSync(LEVEL_DB, 'utf8')
-    );
+    return JSON.parse(fs.readFileSync(LEVEL_DB, 'utf8'));
 }
 
 function saveLevels(data) {
-
-    fs.writeFileSync(
-        LEVEL_DB,
-        JSON.stringify(data, null, 4)
-    );
+    fs.writeFileSync(LEVEL_DB, JSON.stringify(data, null, 4));
 }
 
 const cooldowns = new Set();
