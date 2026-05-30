@@ -689,12 +689,21 @@ client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
     // =========================
-    // AUTOMOD (runs on every message)
+    // AUTOMOD (runs on every message, owner bypasses)
     // =========================
     try {
-        await autoModSystem.handleAutoMod(message);
+        await autoModSystem.handleAutoMod(message, process.env.OWNER_ID);
     } catch (err) {
         console.error('[AutoMod Error]', err);
+    }
+
+    // =========================
+    // AUTOREACT (runs on every message, independent of AutoMod)
+    // =========================
+    try {
+        await autoReactSystem.handleAutoReact(message);
+    } catch (err) {
+        console.error('[AutoReact Error]', err);
     }
 
     // =========================

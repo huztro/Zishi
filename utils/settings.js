@@ -21,7 +21,11 @@ function getSettings(guildId) {
     if (!data[guildId]) {
 
         data[guildId] = {
-            leveling: false,
+            leveling: {
+                enabled: false,
+                channels: [],
+                multiplier: 1
+            },
             automod: false,
             autoreact: false,
             badwords: [],
