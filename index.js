@@ -38,10 +38,12 @@ const invitesModule = require('./commands/invites.js');
 const economyModule = require('./commands/economy.js');
 const giveawayModule = require('./commands/giveaway.js');
 const funCommandsList = require('./commands/fun.js');
+const basicCommandsList = require('./commands/basic.js');
 const helpCommand = require('./commands/help.js');
 const autoModSystem = require('./commands/automod.js');
 const autoReactSystem = require('./commands/autoreact.js');
 const levelingSystem = require('./commands/leveling.js');
+const autoresponderSystem = require('./commands/autoresponder.js');
 
 // =========================
 // PREFIX CONFIG
@@ -65,6 +67,7 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildBans,
+        GatewayIntentBits.GuildInvites,    // Required for invite tracking
         GatewayIntentBits.MessageContent   // Required for prefix commands
     ],
     partials: [
@@ -322,7 +325,8 @@ const externalModules = [
     moderationModule,       // plain array of commands
     applicationCommandsList,
     economyModule,          // plain array of commands
-    funCommandsList
+    funCommandsList,
+    basicCommandsList       // avatar, serverinfo, userinfo, say, embed + aliases
 ];
 
 for (const mod of externalModules) {
@@ -440,6 +444,15 @@ if (levelingSystem.data) {
     slashCommands.push(levelingSystem.data.toJSON());
 }
 
+// Autoresponder slash command
+if (autoresponderSystem.data) {
+    commands.set(autoresponderSystem.data.name, {
+        data: autoresponderSystem.data,
+        run: autoresponderSystem.execute.bind(autoresponderSystem)
+    });
+    slashCommands.push(autoresponderSystem.data.toJSON());
+}
+
 // Welcome commands
 if (welcomeModule.commands) {
     for (const cmd of welcomeModule.commands) {
@@ -487,6 +500,11 @@ client.once('ready', async () => {
     console.log(`🚀 Logged in as ${client.user.tag}`);
 
     giveawayModule.initializeGiveawayTrackers(client);
+
+    // Cache invite snapshots for all guilds (for invite tracking)
+    for (const guild of client.guilds.cache.values()) {
+        await invitesModule.cacheGuildInvites(guild).catch(() => {});
+    }
 
     // =========================
     // PRESENCE
@@ -566,14 +584,34 @@ client.on('interactionCreate', async (interaction) => {
 
         } catch (err) {
 
-            console.error(err);
+            console.error(`[Slash Command Error] /${interaction.commandName}:`, err);
 
+            try {
+                const errPayload = { content: '❌ Command failed.', ephemeral: true };
+                if (interaction.deferred) {
+                    await interaction.editReply(errPayload);
+                } else if (!interaction.replied) {
+                    await interaction.reply(errPayload);
+                }
+            } catch {
+                // Interaction may have expired — ignore
+            }
+        }
+    }
+
+    // =========================
+    // MODALS
+    // =========================
+    if (interaction.isModalSubmit()) {
+
+        try {
+            // Giveaway staff application modal
+            const handled = await giveawayModule.handleGiveawayModal(interaction);
+            if (handled) return;
+        } catch (err) {
+            console.error('[Modal Error]', err);
             if (!interaction.replied) {
-
-                await interaction.reply({
-                    content: '❌ Command failed.',
-                    ephemeral: true
-                });
+                await interaction.reply({ content: '❌ Modal submission failed.', ephemeral: true }).catch(() => {});
             }
         }
     }
@@ -582,6 +620,20 @@ client.on('interactionCreate', async (interaction) => {
     // BUTTONS
     // =========================
     if (interaction.isButton()) {
+
+        // =========================
+        // GIVEAWAY BUTTONS
+        // =========================
+        try {
+            const handled = await giveawayModule.handleGiveawayButton(interaction);
+            if (handled !== false) return;
+        } catch (err) {
+            console.error('[Giveaway Button Error]', err);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Failed to process giveaway action.', ephemeral: true }).catch(() => {});
+            }
+            return;
+        }
 
         // =========================
         // CREATE TICKET
@@ -707,6 +759,15 @@ client.on('messageCreate', async (message) => {
     }
 
     // =========================
+    // AUTORESPONDER (runs on every message)
+    // =========================
+    try {
+        await autoresponderSystem.handleAutoresponder(message);
+    } catch (err) {
+        console.error('[Autoresponder Error]', err);
+    }
+
+    // =========================
     // LEVELING XP (runs on every message)
     // =========================
     try {
@@ -796,14 +857,25 @@ client.on('messageCreate', async (message) => {
         return message.reply({ content: `✅ Prefix updated to **${newPrefix}**` });
     }
 
-    // ---- MODERATION + ECONOMY COMMANDS (via commands Map) ----
+    // ---- ALL COMMANDS (via commands Map + aliases) ----
     try {
-        const ecoAliases = { balance: 'bal', inv: 'inventory', lb: 'ecolb', leaderboard: 'ecolb' };
-        const resolvedName = ecoAliases[commandName] || commandName;
+        const prefixAliases = {
+            // Economy aliases
+            balance: 'bal',
+            inv: 'inventory',
+            lb: 'ecolb',
+            leaderboard: 'ecolb',
+            // Basic command aliases
+            av: 'avatar',
+            si: 'serverinfo',
+            ui: 'userinfo'
+        };
+        const resolvedName = prefixAliases[commandName] || commandName;
         const cmd = commands.get(resolvedName);
         if (cmd) {
             // Permission check for commands that declare required permissions
-            const cmdDef = [...moderationModule, ...economyModule].find(c => c.name === resolvedName);
+            const cmdDef = [...moderationModule, ...economyModule, ...basicCommandsList]
+                .find(c => c.name === resolvedName);
             if (cmdDef?.permissions && !message.member.permissions.has(cmdDef.permissions)) {
                 return message.reply({ content: '❌ You lack the required permissions.' });
             }
@@ -829,6 +901,55 @@ client.on('messageCreate', async (message) => {
         if (handled) return;
     } catch (err) {
         console.error('[Prefix AutoMod Error]', err);
+    }
+});
+
+// =========================
+// GUILD CREATE (bot joins a new server)
+// Cache invites immediately so tracking works from day one
+// =========================
+client.on('guildCreate', async (guild) => {
+    await invitesModule.cacheGuildInvites(guild).catch(() => {});
+});
+
+// =========================
+// GUILD MEMBER ADD (invite tracking)
+// =========================
+client.on('guildMemberAdd', async (member) => {
+
+    // Invite tracking
+    try {
+        await invitesModule.handleMemberJoin(member);
+    } catch (err) {
+        console.error('[Invite Join Error]', err);
+    }
+
+    // Welcome message
+    try {
+        const { welcomeDatabase } = welcomeModule;
+        const config = welcomeDatabase.get(member.guild.id);
+        if (config && config.channelId && config.message) {
+            const channel = member.guild.channels.cache.get(config.channelId);
+            if (channel) {
+                const msg = config.message
+                    .replace('{user}', member.toString())
+                    .replace('{guild}', member.guild.name);
+                await channel.send(msg).catch(() => {});
+            }
+        }
+    } catch (err) {
+        console.error('[Welcome Error]', err);
+    }
+});
+
+// =========================
+// GUILD MEMBER REMOVE (invite tracking)
+// =========================
+client.on('guildMemberRemove', async (member) => {
+    try {
+        await invitesModule.handleMemberLeave(member);
+    } catch (err) {
+        console.error('[Invite Leave Error]', err);
     }
 });
 
