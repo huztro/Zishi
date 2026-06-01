@@ -9,6 +9,9 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
     PermissionFlagsBits,
     SlashCommandBuilder
 } = require('discord.js');
@@ -76,7 +79,148 @@ function parseDuration(str) {
     }
 }
 
+// =========================
+// BUTTON INTERACTION HANDLER
+// Called from index.js for all button interactions
+// =========================
+async function handleGiveawayButton(interaction) {
+
+    const { customId } = interaction;
+
+    // ---- JOIN GIVEAWAY ----
+    if (customId === 'join_giveaway_pool') {
+
+        const db = getGiveaways();
+        const msgId = interaction.message.id;
+        const gw = db[msgId];
+
+        if (!gw) {
+            return interaction.reply({
+                content: '❌ This giveaway no longer exists.',
+                ephemeral: true
+            });
+        }
+
+        if (gw.ended) {
+            return interaction.reply({
+                content: '❌ This giveaway has already ended.',
+                ephemeral: true
+            });
+        }
+
+        if (gw.participants.includes(interaction.user.id)) {
+            return interaction.reply({
+                content: '✅ You are already entered in this giveaway!',
+                ephemeral: true
+            });
+        }
+
+        gw.participants.push(interaction.user.id);
+        saveGiveaways(db);
+
+        // Update the footer counter on the embed
+        try {
+            const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
+                .setFooter({
+                    text: `Entries Counter: ${gw.participants.length} Users Registered`
+                });
+
+            await interaction.message.edit({ embeds: [updatedEmbed] });
+        } catch {
+            // Non-critical — entry was still saved
+        }
+
+        return interaction.reply({
+            content: `🎟️ You have been entered into the giveaway for **${gw.prize}**! Good luck!`,
+            ephemeral: true
+        });
+    }
+
+    // ---- STAFF APPLICATION ----
+    if (customId === 'apply_staff_giveaway') {
+
+        const modal = new ModalBuilder()
+            .setCustomId('staff_application_modal')
+            .setTitle('Staff Application');
+
+        const q1 = new TextInputBuilder()
+            .setCustomId('staff_q1')
+            .setLabel('Why do you want to be staff?')
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true)
+            .setMaxLength(500);
+
+        const q2 = new TextInputBuilder()
+            .setCustomId('staff_q2')
+            .setLabel('How much time can you dedicate per week?')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMaxLength(100);
+
+        const q3 = new TextInputBuilder()
+            .setCustomId('staff_q3')
+            .setLabel('Do you have prior moderation experience?')
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true)
+            .setMaxLength(500);
+
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(q1),
+            new ActionRowBuilder().addComponents(q2),
+            new ActionRowBuilder().addComponents(q3)
+        );
+
+        return interaction.showModal(modal);
+    }
+
+    return false; // Not handled by this module
+}
+
+// =========================
+// MODAL SUBMIT HANDLER
+// =========================
+async function handleGiveawayModal(interaction) {
+
+    if (interaction.customId !== 'staff_application_modal') return false;
+
+    const why = interaction.fields.getTextInputValue('staff_q1');
+    const time = interaction.fields.getTextInputValue('staff_q2');
+    const experience = interaction.fields.getTextInputValue('staff_q3');
+
+    const embed = new EmbedBuilder()
+        .setTitle('📋 New Staff Application')
+        .setColor(0x5865F2)
+        .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
+        .addFields(
+            { name: '👤 Applicant', value: `${interaction.user} (\`${interaction.user.tag}\`)`, inline: false },
+            { name: '❓ Why do you want to be staff?', value: why, inline: false },
+            { name: '⏰ Time per week', value: time, inline: false },
+            { name: '🛡️ Prior experience', value: experience, inline: false }
+        )
+        .setTimestamp();
+
+    // Try to find a staff-applications or mod-log channel
+    const logChannel = interaction.guild.channels.cache.find(
+        c => c.name.includes('staff-application') ||
+             c.name.includes('applications') ||
+             c.name.includes('mod-log') ||
+             c.name.includes('staff')
+    );
+
+    if (logChannel) {
+        await logChannel.send({ embeds: [embed] }).catch(() => {});
+    }
+
+    return interaction.reply({
+        content: '✅ Your staff application has been submitted! The moderation team will review it shortly.',
+        ephemeral: true
+    });
+}
+
 module.exports = {
+
+    handleGiveawayButton,
+    handleGiveawayModal,
 
     // ==========================================
     // GIVEAWAY TRACKER
@@ -425,6 +569,50 @@ module.exports = {
                 return interaction.reply(
                     `🎉 New winner for **${gw.prize}** is <@${randomWinner}>!`
                 );
+            }
+        },
+
+        // ======================================
+        // STAFF APPLY PANEL
+        // ======================================
+        {
+            data: new SlashCommandBuilder()
+                .setName('gstaff')
+                .setDescription('Post a staff application panel.')
+                .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+            async run(interaction) {
+
+                const embed = new EmbedBuilder()
+                    .setTitle('📋 Staff Applications Open')
+                    .setDescription(
+                        'We are looking for dedicated staff members!\n\n' +
+                        'Click the button below to submit your application.\n\n' +
+                        '**Requirements:**\n' +
+                        '> • Active in the server\n' +
+                        '> • Good communication skills\n' +
+                        '> • Willing to help members'
+                    )
+                    .setColor(0x5865F2)
+                    .setTimestamp();
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('apply_staff_giveaway')
+                        .setLabel('Apply for Staff')
+                        .setStyle(ButtonStyle.Primary)
+                        .setEmoji('📋')
+                );
+
+                await interaction.reply({
+                    content: '✅ Staff application panel posted.',
+                    ephemeral: true
+                });
+
+                await interaction.channel.send({
+                    embeds: [embed],
+                    components: [row]
+                });
             }
         }
     ]
