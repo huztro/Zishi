@@ -614,6 +614,17 @@ client.on('interactionCreate', async (interaction) => {
                 await interaction.reply({ content: '❌ Modal submission failed.', ephemeral: true }).catch(() => {});
             }
         }
+
+        try {
+            // Application modal submissions
+            const handled = await applicationCommandsList.handleApplicationModal(interaction);
+            if (handled) return;
+        } catch (err) {
+            console.error('[Application Modal Error]', err);
+            if (!interaction.replied) {
+                await interaction.reply({ content: '❌ Application submission failed.', ephemeral: true }).catch(() => {});
+            }
+        }
     }
 
     // =========================
@@ -631,6 +642,20 @@ client.on('interactionCreate', async (interaction) => {
             console.error('[Giveaway Button Error]', err);
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({ content: '❌ Failed to process giveaway action.', ephemeral: true }).catch(() => {});
+            }
+            return;
+        }
+
+        // =========================
+        // APPLICATION BUTTONS
+        // =========================
+        try {
+            const handled = await applicationCommandsList.handleApplicationButton(interaction);
+            if (handled !== false) return;
+        } catch (err) {
+            console.error('[Application Button Error]', err);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Failed to open application.', ephemeral: true }).catch(() => {});
             }
             return;
         }
