@@ -35,6 +35,16 @@ const spamTracker = new Map();
 async function handleAutoMod(message, ownerId) {
     if (!message.guild) return;
     if (message.author.bot) return;
+
+    // Fetch member if not cached (required for permission checks)
+    if (!message.member) {
+        try {
+            await message.guild.members.fetch(message.author.id);
+        } catch {
+            return; // Can't resolve member — skip
+        }
+    }
+
     if (!message.member) return;
 
     // Owner always bypasses AutoMod entirely

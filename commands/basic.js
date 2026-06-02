@@ -7,15 +7,21 @@ const { EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js')
 
 // Helper to build the uniform premium dark-mode embed design matching Capture.PNG
 function createPremiumEmbed(title, description, executioner) {
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setTitle(`💎 ${title}`)
-        .setDescription(description)
         .setColor(0x1A1C1E) // Premium dark background color
         .setFooter({ 
             text: `Action by ${executioner.username}`, 
             iconURL: executioner.displayAvatarURL({ dynamic: true }) 
         })
         .setTimestamp();
+
+    // Only set description if it is a non-empty string — Discord rejects empty descriptions
+    if (description && description.trim().length > 0) {
+        embed.setDescription(description);
+    }
+
+    return embed;
 }
 
 // Unified target user lookup helper supporting both text mentions and slash options

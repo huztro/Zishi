@@ -22,7 +22,101 @@ global.applicationsTemplates =
 const applicationsTemplates =
     global.applicationsTemplates;
 
-module.exports = [
+// =========================
+// BUTTON HANDLER
+// Called from index.js for all button interactions
+// Handles: apply_<appID> buttons
+// =========================
+async function handleApplicationButton(interaction) {
+    const { customId } = interaction;
+
+    // Only handle apply_<appID> buttons — not apply_staff_giveaway or other reserved IDs
+    if (!customId.startsWith('apply_')) return false;
+    if (customId === 'apply_staff_giveaway') return false;
+
+    const appID = customId.replace('apply_', '');
+    const template = applicationsTemplates.get(appID);
+
+    if (!template) {
+        return interaction.reply({
+            content: '❌ This application template no longer exists.',
+            ephemeral: true
+        });
+    }
+
+    // Build a modal with up to 5 questions (Discord modals support max 5 components)
+    const modal = new ModalBuilder()
+        .setCustomId(`app_modal_${appID}`)
+        .setTitle(template.title.slice(0, 45)); // Discord title max 45 chars
+
+    const questions = template.questions.slice(0, 5);
+    for (let i = 0; i < questions.length; i++) {
+        const input = new TextInputBuilder()
+            .setCustomId(`app_q${i}`)
+            .setLabel(questions[i].slice(0, 45))
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true)
+            .setMaxLength(1000);
+
+        modal.addComponents(new ActionRowBuilder().addComponents(input));
+    }
+
+    return interaction.showModal(modal);
+}
+
+// =========================
+// MODAL HANDLER
+// Called from index.js for all modal submissions
+// Handles: app_modal_<appID> submissions
+// =========================
+async function handleApplicationModal(interaction) {
+    if (!interaction.customId.startsWith('app_modal_')) return false;
+
+    const appID = interaction.customId.replace('app_modal_', '');
+    const template = applicationsTemplates.get(appID);
+
+    const answers = [];
+    const questions = template ? template.questions.slice(0, 5) : [];
+    for (let i = 0; i < questions.length; i++) {
+        try {
+            answers.push(interaction.fields.getTextInputValue(`app_q${i}`));
+        } catch {
+            answers.push('*(no answer)*');
+        }
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle(`📋 New Application — ${template ? template.title : 'Unknown'}`)
+        .setColor(0x5865F2)
+        .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
+        .addFields(
+            { name: '👤 Applicant', value: `${interaction.user} (\`${interaction.user.tag}\`)`, inline: false },
+            ...questions.map((q, i) => ({
+                name: `❓ ${q.slice(0, 256)}`,
+                value: answers[i] || '*(no answer)*',
+                inline: false
+            }))
+        )
+        .setTimestamp();
+
+    // Try to find an applications or staff log channel
+    const logChannel = interaction.guild.channels.cache.find(
+        c => c.name.includes('application') ||
+             c.name.includes('staff-log') ||
+             c.name.includes('mod-log')
+    );
+
+    if (logChannel) {
+        await logChannel.send({ embeds: [embed] }).catch(() => {});
+    }
+
+    return interaction.reply({
+        content: '✅ Your application has been submitted! The team will review it shortly.',
+        ephemeral: true
+    });
+}
+
+const applicationCommands = [
 
     // ==================================================
     // CREATE APPLICATION
@@ -215,3 +309,9 @@ module.exports = [
         }
     }
 ];
+
+module.exports = {
+    commands: applicationCommands,
+    handleApplicationButton,
+    handleApplicationModal
+};
