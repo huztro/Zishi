@@ -79,15 +79,26 @@ const client = new Client({
 
 const commands = new Map();
 const slashCommands = [];
+const registeredCommandNames = new Set(); // tracks names to prevent duplicates
 
 const startTime = Date.now();
 
 // =========================
 // REGISTER HELPER
+// Deduplicates by command name — only the FIRST registration wins.
 // =========================
 function register(commandData, callback) {
 
-    commands.set(commandData.name, {
+    const name = commandData.name;
+
+    if (registeredCommandNames.has(name)) {
+        console.warn(`[Register] Skipping duplicate command: /${name}`);
+        return;
+    }
+
+    registeredCommandNames.add(name);
+
+    commands.set(name, {
         data: commandData,
         run: callback
     });
@@ -414,54 +425,35 @@ for (const mod of externalModules) {
 
 // =========================
 // REGISTER SPECIAL SLASH COMMANDS
-// (modules that export { data, execute } directly)
+// (modules that export { data, execute } or { commands: [{data, run}] })
+// All go through register() so deduplication is enforced automatically.
 // =========================
 
 // AutoMod slash command
 if (autoModSystem.data) {
-    commands.set(autoModSystem.data.name, {
-        data: autoModSystem.data,
-        run: autoModSystem.execute.bind(autoModSystem)
-    });
-    slashCommands.push(autoModSystem.data.toJSON());
+    register(autoModSystem.data, autoModSystem.execute.bind(autoModSystem));
 }
 
 // AutoReact slash command
 if (autoReactSystem.data) {
-    commands.set(autoReactSystem.data.name, {
-        data: autoReactSystem.data,
-        run: autoReactSystem.execute.bind(autoReactSystem)
-    });
-    slashCommands.push(autoReactSystem.data.toJSON());
+    register(autoReactSystem.data, autoReactSystem.execute.bind(autoReactSystem));
 }
 
 // Leveling slash command
 if (levelingSystem.data) {
-    commands.set(levelingSystem.data.name, {
-        data: levelingSystem.data,
-        run: levelingSystem.execute.bind(levelingSystem)
-    });
-    slashCommands.push(levelingSystem.data.toJSON());
+    register(levelingSystem.data, levelingSystem.execute.bind(levelingSystem));
 }
 
 // Autoresponder slash command
 if (autoresponderSystem.data) {
-    commands.set(autoresponderSystem.data.name, {
-        data: autoresponderSystem.data,
-        run: autoresponderSystem.execute.bind(autoresponderSystem)
-    });
-    slashCommands.push(autoresponderSystem.data.toJSON());
+    register(autoresponderSystem.data, autoresponderSystem.execute.bind(autoresponderSystem));
 }
 
 // Welcome commands
 if (welcomeModule.commands) {
     for (const cmd of welcomeModule.commands) {
         if (cmd.data) {
-            commands.set(cmd.data.name, {
-                data: cmd.data,
-                run: cmd.run.bind(cmd)
-            });
-            slashCommands.push(cmd.data.toJSON());
+            register(cmd.data, cmd.run.bind(cmd));
         }
     }
 }
@@ -470,11 +462,7 @@ if (welcomeModule.commands) {
 if (invitesModule.commands) {
     for (const cmd of invitesModule.commands) {
         if (cmd.data) {
-            commands.set(cmd.data.name, {
-                data: cmd.data,
-                run: cmd.run.bind(cmd)
-            });
-            slashCommands.push(cmd.data.toJSON());
+            register(cmd.data, cmd.run.bind(cmd));
         }
     }
 }
@@ -483,11 +471,7 @@ if (invitesModule.commands) {
 if (giveawayModule.commands) {
     for (const cmd of giveawayModule.commands) {
         if (cmd.data) {
-            commands.set(cmd.data.name, {
-                data: cmd.data,
-                run: cmd.run.bind(cmd)
-            });
-            slashCommands.push(cmd.data.toJSON());
+            register(cmd.data, cmd.run.bind(cmd));
         }
     }
 }
@@ -544,7 +528,7 @@ client.once('ready', async () => {
             new REST({ version: '10' })
                 .setToken(process.env.BOT_TOKEN);
 
-        console.log('🔄 Registering slash commands...');
+        console.log(`🔄 Registering ${slashCommands.length} slash commands: ${slashCommands.map(c => c.name).join(', ')}`);
 
         await rest.put(
             Routes.applicationCommands(
@@ -555,7 +539,7 @@ client.once('ready', async () => {
             }
         );
 
-        console.log('✅ Slash commands registered.');
+        console.log(`✅ ${slashCommands.length} slash commands registered successfully.`);
 
     } catch (err) {
 
