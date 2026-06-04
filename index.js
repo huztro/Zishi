@@ -499,7 +499,7 @@ client.once('ready', async () => {
     // PRESENCE
     // =========================
     const statuses = [
-        'Made By Huztro',
+        'Made By @ItzHuzaifa',
         '/help - For Support',
         'Executing System Diagnostics',
         'Ensuring Uptime Stability'
