@@ -50,7 +50,7 @@ const { getSettings } = require('./utils/settings.js');
 // =========================
 // PREFIX CONFIG
 // =========================
-const DEFAULT_PREFIX = '!', '.';
+const DEFAULT_PREFIXES = ['!', '.'];
 
 function getPrefixes(guildId) {
     if (global.prefixes && global.prefixes[guildId]) {
