@@ -44,6 +44,8 @@ const autoModSystem = require('./commands/automod.js');
 const autoReactSystem = require('./commands/autoreact.js');
 const levelingSystem = require('./commands/leveling.js');
 const autoresponderSystem = require('./commands/autoresponder.js');
+const tsetupCommand = require('./commands/tsetup.js');
+const { getSettings } = require('./utils/settings.js');
 
 // =========================
 // PREFIX CONFIG
@@ -476,6 +478,9 @@ if (giveawayModule.commands) {
     }
 }
 
+// Ticket setup command
+register(tsetupCommand.data, tsetupCommand.run);
+
 // =========================
 // READY
 // =========================
@@ -589,17 +594,6 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isModalSubmit()) {
 
         try {
-            // Giveaway staff application modal
-            const handled = await giveawayModule.handleGiveawayModal(interaction);
-            if (handled) return;
-        } catch (err) {
-            console.error('[Modal Error]', err);
-            if (!interaction.replied) {
-                await interaction.reply({ content: '❌ Modal submission failed.', ephemeral: true }).catch(() => {});
-            }
-        }
-
-        try {
             // Application modal submissions
             const handled = await applicationCommandsList.handleApplicationModal(interaction);
             if (handled) return;
@@ -645,54 +639,95 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         // =========================
-        // CREATE TICKET
+        // CREATE TICKET (tsetup panel — config-driven)
         // =========================
-        if (
-            interaction.customId ===
-            'create_ticket_channel'
-        ) {
+        if (interaction.customId === 'tsetup_open_ticket') {
 
-            await interaction.deferReply({
-                ephemeral: true
+            await interaction.deferReply({ ephemeral: true });
+
+            // Load guild-specific ticket config saved by /tsetup or !tsetup
+            const settings = getSettings(interaction.guild.id);
+            const cfg = settings.ticketSetup || {};
+            const ticketTitle       = cfg.title       || '🎫 Ticket Created';
+            const ticketDescription = cfg.description || 'Support will be with you shortly.';
+
+            const ticket = await interaction.guild.channels.create({
+                name: `ticket-${interaction.user.username}`,
+                type: ChannelType.GuildText,
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.roles.everyone.id,
+                        deny: [PermissionFlagsBits.ViewChannel]
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages
+                        ]
+                    }
+                ]
             });
 
-            const ticket =
-                await interaction.guild.channels.create({
-                    name: `ticket-${interaction.user.username}`,
-                    type: ChannelType.GuildText,
-                    permissionOverwrites: [
-                        {
-                            id: interaction.guild.roles.everyone.id,
-                            deny: [
-                                PermissionFlagsBits.ViewChannel
-                            ]
-                        },
-                        {
-                            id: interaction.user.id,
-                            allow: [
-                                PermissionFlagsBits.ViewChannel,
-                                PermissionFlagsBits.SendMessages
-                            ]
-                        }
-                    ]
-                });
+            const embed = new EmbedBuilder()
+                .setTitle(ticketTitle)
+                .setDescription(ticketDescription)
+                .setColor(0x3498DB);
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('close_ticket_channel')
+                    .setLabel('Close Ticket')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+            await ticket.send({
+                content: `${interaction.user}`,
+                embeds: [embed],
+                components: [row]
+            });
+
+            await interaction.editReply({
+                content: `✅ Ticket created: ${ticket}`
+            });
+        }
+
+        // =========================
+        // CREATE TICKET (legacy setup-tickets panel)
+        // =========================
+        if (interaction.customId === 'create_ticket_channel') {
+
+            await interaction.deferReply({ ephemeral: true });
+
+            const ticket = await interaction.guild.channels.create({
+                name: `ticket-${interaction.user.username}`,
+                type: ChannelType.GuildText,
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.roles.everyone.id,
+                        deny: [PermissionFlagsBits.ViewChannel]
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages
+                        ]
+                    }
+                ]
+            });
 
             const embed = new EmbedBuilder()
                 .setTitle('🎫 Ticket Created')
-                .setDescription(
-                    'Support will be with you shortly.'
-                )
+                .setDescription('Support will be with you shortly.')
                 .setColor(0x3498DB);
 
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(
-                            'close_ticket_channel'
-                        )
-                        .setLabel('Close Ticket')
-                        .setStyle(ButtonStyle.Danger)
-                );
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('close_ticket_channel')
+                    .setLabel('Close Ticket')
+                    .setStyle(ButtonStyle.Danger)
+            );
 
             await ticket.send({
                 content: `${interaction.user}`,
@@ -894,6 +929,17 @@ client.on('messageCreate', async (message) => {
     } catch (err) {
         console.error('[Prefix Command Error]', err);
         message.reply({ content: '❌ Command failed.' }).catch(() => {});
+    }
+
+    // ---- TSETUP ----
+    if (commandName === 'tsetup') {
+        try {
+            await tsetupCommand.handlePrefix(message, args);
+        } catch (err) {
+            console.error('[Prefix tsetup Error]', err);
+            message.reply({ content: '❌ tsetup failed.' }).catch(() => {});
+        }
+        return;
     }
 
     // ---- LEVELING COMMANDS ----
