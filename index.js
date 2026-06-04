@@ -907,7 +907,7 @@ const commandName = args.shift().toLowerCase();
         const newPrefix = args[0];
         if (!newPrefix) return message.reply({ content: '❌ Usage: `!setprefix <prefix>`' });
         global.prefixes ??= {};
-        global.prefixes[message.guild.id] = newPrefix;
+        global.prefixes[message.guild.id] = ['!', '.', newPrefix];
         return message.reply({ content: `✅ Prefix updated to **${newPrefix}**` });
     }
 
