@@ -52,11 +52,12 @@ const { getSettings } = require('./utils/settings.js');
 // =========================
 const DEFAULT_PREFIX = '!', '.';
 
-function getPrefix(guildId) {
+function getPrefixes(guildId) {
     if (global.prefixes && global.prefixes[guildId]) {
         return global.prefixes[guildId];
     }
-    return DEFAULT_PREFIX;
+
+    return DEFAULT_PREFIXES;
 }
 
 // =========================
