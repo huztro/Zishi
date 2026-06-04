@@ -845,11 +845,20 @@ client.on('messageCreate', async (message) => {
     // =========================
     // PREFIX COMMANDS
     // =========================
-    const prefix = getPrefix(message.guild.id);
-    if (!message.content.startsWith(prefix)) return;
+const prefixes = getPrefixes(message.guild.id);
 
-    const args = message.content.slice(prefix.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
+const prefix = prefixes.find(p =>
+    message.content.startsWith(p)
+);
+
+if (!prefix) return;
+
+const args = message.content
+    .slice(prefix.length)
+    .trim()
+    .split(/ +/);
+
+const commandName = args.shift().toLowerCase();
 
     if (!commandName) return;
 
