@@ -45,6 +45,7 @@ const autoReactSystem = require('./commands/autoreact.js');
 const levelingSystem = require('./commands/leveling.js');
 const autoresponderSystem = require('./commands/autoresponder.js');
 const tsetupCommand = require('./commands/tsetup.js');
+const utilityCommandsList = require('./commands/utility.js');
 const { getSettings } = require('./utils/settings.js');
 
 // =========================
@@ -340,7 +341,8 @@ const externalModules = [
     applicationCommandsList,
     economyModule,          // plain array of commands
     funCommandsList,
-    basicCommandsList       // avatar, serverinfo, userinfo, say, embed + aliases
+    basicCommandsList,      // avatar, serverinfo, userinfo, say, embed + aliases
+    utilityCommandsList     // roleall, listroles, membercount, rolemembers, removeall, massban, massunban, memberinfo, roledeleteall, channelinfo
 ];
 
 for (const mod of externalModules) {
@@ -928,7 +930,7 @@ const commandName = args.shift().toLowerCase();
         const cmd = commands.get(resolvedName);
         if (cmd) {
             // Permission check for commands that declare required permissions
-            const cmdDef = [...moderationModule, ...economyModule, ...basicCommandsList]
+            const cmdDef = [...moderationModule, ...economyModule, ...basicCommandsList, ...utilityCommandsList]
                 .find(c => c.name === resolvedName);
             if (cmdDef?.permissions && !message.member.permissions.has(cmdDef.permissions)) {
                 return message.reply({ content: '❌ You lack the required permissions.' });
