@@ -25,11 +25,13 @@ module.exports = {
             .setTitle('💎 Zishi Help Menu')
             .setDescription(
             `> Select a category below\n` +
-           `> Use \`!help <command>\` for details\n\n` +
+           `> Use \`!help\` to open this panel anytime\n\n` +
            `💡 **Invite Bot:** [Click Here](https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot+applications.commands)\n` +
-           `🎉 **Support Server:** [Join Here](https://discord.gg/ZQnThRAD9f)`
+           `🎉 **Support Server:** [Join Here](https://dsc.gg/froststar)\n` +
+           `👑 **Owner:** @ItzHuzaifa`
             )
             .setColor(0x1A1C1E)
+            .setThumbnail(client.user.displayAvatarURL({ size: 256 }))
             .setFooter({ text: 'Zishi | Help Panel' })
             .setTimestamp();
 
@@ -46,16 +48,21 @@ module.exports = {
                 new StringSelectMenuOptionBuilder().setLabel('Leveling').setValue('lvl').setEmoji('📈'),
                 new StringSelectMenuOptionBuilder().setLabel('Giveaways').setValue('give').setEmoji('🎁'),
                 new StringSelectMenuOptionBuilder().setLabel('Premium').setValue('prem').setEmoji('👑'),
-                new StringSelectMenuOptionBuilder().setLabel('Fun & Games').setValue('fun').setEmoji('🎮')
+                new StringSelectMenuOptionBuilder().setLabel('Fun & Games').setValue('fun').setEmoji('🎮'),
+                new StringSelectMenuOptionBuilder().setLabel('Info & Links').setValue('info').setEmoji('🔗')
             );
 
         const row = new ActionRowBuilder().addComponents(menu);
 
-        const msg = await ctx.reply({
+        // For slash interactions, fetchReply is needed to get the message object for the collector.
+        // For prefix messages, ctx.reply returns the sent message directly.
+        const replyOptions = {
             embeds: [baseEmbed],
             components: [row],
             fetchReply: true
-        });
+        };
+
+        const msg = await ctx.reply(replyOptions);
 
         // ===============================
         // COLLECTOR
@@ -158,16 +165,18 @@ module.exports = {
                     embed = new EmbedBuilder()
                         .setTitle('📈 Leveling System')
                         .setColor(0x1A1C1E)
-                        .setDescription('XP is earned by sending messages (10s cooldown per user).\n\u200b')
+                        .setDescription('XP is earned by chatting in **any channel** (10s cooldown). Level-up messages go to the configured announcement channel.\n\u200b')
                         .addFields(
                             { name: '/leveling enable', value: 'Enable XP system', inline: true },
                             { name: '/leveling disable', value: 'Disable XP system', inline: true },
                             { name: '/leveling rank', value: 'View your level & XP', inline: true },
                             { name: '/leveling leaderboard', value: 'Top 10 levels', inline: true },
-                            { name: '/leveling channel-add', value: 'Restrict XP to channel', inline: true },
-                            { name: '/leveling channel-remove', value: 'Remove XP channel', inline: true },
+                            { name: '/leveling channel-set', value: 'Set level-up message channel', inline: true },
+                            { name: '/leveling channel-add', value: 'Restrict XP earning to channel', inline: true },
+                            { name: '/leveling channel-remove', value: 'Remove XP channel restriction', inline: true },
                             { name: '!rank [@user]', value: 'Prefix: view rank', inline: true },
                             { name: '!leaderboard', value: 'Prefix: level leaderboard', inline: true },
+                            { name: '!levelchannel #ch', value: 'Admin: set level-up channel', inline: true },
                             { name: '!resetlevels [@user]', value: 'Admin: reset levels', inline: true }
                         );
                     break;
@@ -202,6 +211,24 @@ module.exports = {
                             { name: 'dice', value: 'Roll dice' },
                             { name: 'coin', value: 'Flip a coin' },
                             { name: '8ball', value: 'Ask the magic 8 ball' }
+                        );
+                    break;
+
+                case 'info':
+                    embed = new EmbedBuilder()
+                        .setTitle('🔗 Info & Links')
+                        .setColor(0x1A1C1E)
+                        .setDescription('Quick-access commands for bot info, links, and server stats.\n\u200b')
+                        .addFields(
+                            { name: '!invite', value: 'Get the bot invite link', inline: true },
+                            { name: '!ss / !supportserver', value: 'Join the support server', inline: true },
+                            { name: '!owner', value: 'View bot owner info', inline: true },
+                            { name: '!mc', value: 'Server member count', inline: true },
+                            { name: '!i [@user]', value: 'Invite stats (alias for !invites)', inline: true },
+                            { name: '!invites [@user]', value: 'Full invite stats', inline: true },
+                            { name: '!inviteleaderboard', value: 'Top invite contributors', inline: true },
+                            { name: '!ping', value: 'Bot latency', inline: true },
+                            { name: '!status', value: 'Bot uptime & stats', inline: true }
                         );
                     break;
             }
