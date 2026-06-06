@@ -38,6 +38,7 @@ function getSettings(guildId) {
         settings.leveling = {
             enabled: false,
             channels: [],
+            levelUpChannel: null,
             multiplier: 1
         };
         saveSettings(guildId, settings);
@@ -45,6 +46,11 @@ function getSettings(guildId) {
 
     if (!Array.isArray(settings.leveling.channels)) {
         settings.leveling.channels = [];
+    }
+
+    // Ensure levelUpChannel field exists
+    if (!('levelUpChannel' in settings.leveling)) {
+        settings.leveling.levelUpChannel = null;
     }
 
     return settings;
@@ -125,6 +131,23 @@ module.exports = {
                     opt
                         .setName('channel')
                         .setDescription('Channel')
+                        .setRequired(true)
+                )
+        )
+
+        // =========================
+        // CHANNEL SET (level-up message destination)
+        // =========================
+
+        .addSubcommand(sub =>
+            sub
+                .setName('channel-set')
+                .setDescription('Set the channel where level-up messages are sent')
+
+                .addChannelOption(opt =>
+                    opt
+                        .setName('channel')
+                        .setDescription('Level-up announcement channel')
                         .setRequired(true)
                 )
         )
@@ -256,6 +279,27 @@ module.exports = {
 
             return interaction.reply(
                 `✅ Removed ${channel} from leveling channels.`
+            );
+        }
+
+        // ==========================================
+        // CHANNEL SET (level-up message destination)
+        // ==========================================
+
+        if (sub === 'channel-set') {
+
+            const channel =
+                interaction.options.getChannel('channel');
+
+            settings.leveling.levelUpChannel = channel.id;
+
+            saveSettings(
+                interaction.guild.id,
+                settings
+            );
+
+            return interaction.reply(
+                `✅ Level-up messages will now be sent in ${channel}.`
             );
         }
 
@@ -392,17 +436,6 @@ module.exports = {
         ) return;
 
         // =========================
-        // CHANNEL FILTER
-        // =========================
-
-        if (
-            settings.leveling.channels.length > 0 &&
-            !settings.leveling.channels.includes(
-                message.channel.id
-            )
-        ) return;
-
-        // =========================
         // COOLDOWN
         // =========================
 
@@ -473,14 +506,29 @@ module.exports = {
                     )
 
                     .setDescription(
-                        `${message.author} reached level **${profile.level}**`
+                        `${message.author} reached level **${profile.level}**! 🚀`
                     )
 
-                    .setColor(0x2ECC71);
+                    .setColor(0x2ECC71)
 
-            message.channel.send({
+                    .setThumbnail(
+                        message.author.displayAvatarURL({ size: 256 })
+                    )
+
+                    .setFooter({ text: 'Keep chatting to level up further!' })
+
+                    .setTimestamp();
+
+            // Send level-up message ONLY in the configured level-up channel.
+            // If no channel is set, fall back to the current channel.
+            const levelUpChannelId = settings.leveling.levelUpChannel;
+            const targetChannel = levelUpChannelId
+                ? (message.guild.channels.cache.get(levelUpChannelId) || message.channel)
+                : message.channel;
+
+            targetChannel.send({
                 embeds: [embed]
-            });
+            }).catch(() => {});
         }
 
         saveLevels(levels);
@@ -538,6 +586,23 @@ module.exports = {
                 .setColor(0xFFD700);
 
             await message.channel.send({ embeds: [embed] });
+            return true;
+        }
+
+        // LEVELCHANNEL (admin only) — set level-up announcement channel
+        if (commandName === 'levelchannel') {
+            if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+                return message.reply({ content: '❌ Administrator permission required.' });
+            }
+
+            const channel = message.mentions.channels.first();
+            if (!channel) {
+                return message.reply({ content: '❌ Usage: `!levelchannel #channel` — mention the channel where level-up messages should be sent.' });
+            }
+
+            settings.leveling.levelUpChannel = channel.id;
+            saveSettings(message.guild.id, settings);
+            await message.reply(`✅ Level-up messages will now be sent in ${channel}.`);
             return true;
         }
 

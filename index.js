@@ -47,6 +47,7 @@ const autoresponderSystem = require('./commands/autoresponder.js');
 const tsetupCommand = require('./commands/tsetup.js');
 const utilityCommandsList = require('./commands/utility.js');
 const { getSettings } = require('./utils/settings.js');
+const { handleInfoCommand } = require('./commands/info.js');
 
 // =========================
 // PREFIX CONFIG
@@ -214,42 +215,8 @@ register(
         .setDescription('Open help menu'),
 
     async (interaction) => {
-
-        const embed = new EmbedBuilder()
-            .setTitle('💎 Zishi Help')
-            .setDescription(
-                `Select a category below.`
-            )
-            .setColor(0x1A1C1E);
-
-        const menu = new StringSelectMenuBuilder()
-            .setCustomId('help_category_select')
-            .setPlaceholder('Select category')
-            .addOptions(
-                {
-                    label: 'Moderation',
-                    value: 'mod',
-                    emoji: '🛡️'
-                },
-                {
-                    label: 'Economy',
-                    value: 'eco',
-                    emoji: '💰'
-                },
-                {
-                    label: 'Fun',
-                    value: 'fun',
-                    emoji: '🎮'
-                }
-            );
-
-        const row =
-            new ActionRowBuilder().addComponents(menu);
-
-        await interaction.reply({
-            embeds: [embed],
-            components: [row]
-        });
+        // Use the same handler as !help so both are identical
+        await helpCommand.run(interaction);
     }
 );
 
@@ -875,6 +842,14 @@ const commandName = args.shift().toLowerCase();
         return;
     }
 
+    // ---- INFO COMMANDS (!i, !mc, !invite, !ss, !supportserver, !owner) ----
+    try {
+        const infoHandled = await handleInfoCommand(message, commandName, args, client);
+        if (infoHandled) return;
+    } catch (err) {
+        console.error('[Info Command Error]', err);
+    }
+
     // ---- PING ----
     if (commandName === 'ping') {
         const sent = await message.channel.send('🏓 Pinging...');
@@ -924,7 +899,12 @@ const commandName = args.shift().toLowerCase();
             // Basic command aliases
             av: 'avatar',
             si: 'serverinfo',
-            ui: 'userinfo'
+            ui: 'userinfo',
+            // Invite aliases
+            inviteleaderboard: 'inviteleaderboard',
+            invites: 'invites',
+            // Membercount alias (slash command name)
+            membercount: 'membercount'
         };
         const resolvedName = prefixAliases[commandName] || commandName;
         const cmd = commands.get(resolvedName);
