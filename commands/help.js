@@ -1,36 +1,56 @@
 /**
- * Nexora Premium Help System (Fixed Architecture Version)
+ * Zishi — Help System
+ * Unified handler for BOTH !help (prefix) and /help (slash).
+ * Both use the exact same embed and dropdown menu.
  */
 
 const {
     EmbedBuilder,
     ActionRowBuilder,
     StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder
+    StringSelectMenuOptionBuilder,
+    SlashCommandBuilder
 } = require('discord.js');
+
+const SUPPORT_SERVER = 'https://dsc.gg/froststar';
 
 module.exports = {
     name: "help",
-    description: "Interactive premium help panel",
+    description: "Interactive help panel",
+
+    // Slash command definition — registered in index.js
+    data: new SlashCommandBuilder()
+        .setName('help')
+        .setDescription('Open the interactive help menu'),
+
+    // execute() is called by the slash command handler in index.js
+    async execute(interaction) {
+        return module.exports.run(interaction);
+    },
 
     async run(ctx) {
 
-        const client = ctx.client;
-        const user = ctx.user || ctx.author;
+        const isSlash = typeof ctx.isChatInputCommand === 'function' && ctx.isChatInputCommand();
+        const client  = ctx.client;
+        const user    = isSlash ? ctx.user : ctx.author;
 
         // ===============================
         // BASE EMBED
         // ===============================
+        const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot+applications.commands`;
+
         const baseEmbed = new EmbedBuilder()
             .setTitle('💎 Zishi Help Menu')
             .setDescription(
-            `> Select a category below\n` +
-           `> Use \`!help <command>\` for details\n\n` +
-           `💡 **Invite Bot:** [Click Here](https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot+applications.commands)\n` +
-           `🎉 **Support Server:** [Join Here](https://discord.gg/ZQnThRAD9f)`
+                `> Select a category below to explore commands\n` +
+                `> All commands work with \`/\` slash **and** \`!\` prefix\n\n` +
+                `💡 **Invite Bot:** [Click Here](${inviteUrl})\n` +
+                `🎉 **Support Server:** [Join Here](${SUPPORT_SERVER})\n` +
+                `👑 **Owner:** @ItzHuzaifa`
             )
             .setColor(0x1A1C1E)
-            .setFooter({ text: 'Zishi | Help Panel' })
+            .setThumbnail(client.user.displayAvatarURL({ size: 256 }))
+            .setFooter({ text: 'Zishi | Help Panel • Use the dropdown to navigate' })
             .setTimestamp();
 
         // ===============================
@@ -40,13 +60,14 @@ module.exports = {
             .setCustomId('help_category_select')
             .setPlaceholder('📁 Select a category')
             .addOptions(
-                new StringSelectMenuOptionBuilder().setLabel('Moderation').setValue('mod').setEmoji('🛡️'),
-                new StringSelectMenuOptionBuilder().setLabel('Systems & AutoMod').setValue('sys').setEmoji('🎟️'),
-                new StringSelectMenuOptionBuilder().setLabel('Economy').setValue('eco').setEmoji('💰'),
-                new StringSelectMenuOptionBuilder().setLabel('Leveling').setValue('lvl').setEmoji('📈'),
-                new StringSelectMenuOptionBuilder().setLabel('Giveaways').setValue('give').setEmoji('🎁'),
-                new StringSelectMenuOptionBuilder().setLabel('Premium').setValue('prem').setEmoji('👑'),
-                new StringSelectMenuOptionBuilder().setLabel('Fun & Games').setValue('fun').setEmoji('🎮')
+                new StringSelectMenuOptionBuilder().setLabel('Moderation').setValue('mod').setEmoji('🛡️').setDescription('30+ mod commands'),
+                new StringSelectMenuOptionBuilder().setLabel('Systems & AutoMod').setValue('sys').setEmoji('🎟️').setDescription('Tickets, verification, AutoMod'),
+                new StringSelectMenuOptionBuilder().setLabel('Economy').setValue('eco').setEmoji('💰').setDescription('Balance, daily, shop & more'),
+                new StringSelectMenuOptionBuilder().setLabel('Leveling').setValue('lvl').setEmoji('📈').setDescription('XP, rank, leaderboard'),
+                new StringSelectMenuOptionBuilder().setLabel('Giveaways').setValue('give').setEmoji('🎁').setDescription('Start & manage giveaways'),
+                new StringSelectMenuOptionBuilder().setLabel('Utility').setValue('util').setEmoji('🔧').setDescription('Invite, ping, uptime & more'),
+                new StringSelectMenuOptionBuilder().setLabel('Fun & Games').setValue('fun').setEmoji('🎮').setDescription('RPS, dice, 8ball & more'),
+                new StringSelectMenuOptionBuilder().setLabel('Premium').setValue('prem').setEmoji('👑').setDescription('Premium-only features')
             );
 
         const row = new ActionRowBuilder().addComponents(menu);
@@ -115,20 +136,21 @@ module.exports = {
 
                 case 'sys':
                     embed = new EmbedBuilder()
-                        .setTitle('🎟️ Systems')
+                        .setTitle('🎟️ Systems & AutoMod')
                         .setColor(0x1A1C1E)
+                        .setDescription('Setup and configuration commands.\n\u200b')
                         .addFields(
-                            { name: 'setup-tickets', value: 'Create ticket panel' },
-                            { name: 'setup-verification', value: 'Create verify panel' },
-                            { name: 'welcomesetup', value: 'Setup welcome messages' },
-                            { name: 'automod enable/disable', value: 'Toggle AutoMod' },
-                            { name: 'automod status', value: 'View AutoMod config' },
-                            { name: 'automod spam/caps/mentions/links', value: 'Configure filters' },
-                            { name: 'automod badwords-add/remove', value: 'Manage bad words' },
-                            { name: 'automod autoreact-add/remove', value: 'Manage autoreacts' },
-                            { name: 'leveling enable/disable', value: 'Toggle XP system' },
-                            { name: 'leveling rank', value: 'View your level' },
-                            { name: 'leveling leaderboard', value: 'Top levels' }
+                            { name: '/setup-tickets', value: 'Create ticket panel', inline: true },
+                            { name: '/setup-verification', value: 'Create verify panel', inline: true },
+                            { name: '/welcomesetup', value: 'Setup welcome messages', inline: true },
+                            { name: '/automod enable/disable', value: 'Toggle AutoMod', inline: true },
+                            { name: '/automod status', value: 'View AutoMod config', inline: true },
+                            { name: '/automod spam/caps/mentions/links', value: 'Configure filters', inline: true },
+                            { name: '/automod badwords-add/remove', value: 'Manage bad words', inline: true },
+                            { name: '/automod logchannel', value: 'Set AutoMod log channel', inline: true },
+                            { name: '/leveling enable/disable', value: 'Toggle XP system', inline: true },
+                            { name: '/leveling setup-channel', value: 'Set level-up message channel', inline: true },
+                            { name: '/leveling channel-add/remove', value: 'Restrict XP to channels', inline: true }
                         );
                     break;
 
@@ -158,17 +180,39 @@ module.exports = {
                     embed = new EmbedBuilder()
                         .setTitle('📈 Leveling System')
                         .setColor(0x1A1C1E)
-                        .setDescription('XP is earned by sending messages (10s cooldown per user).\n\u200b')
+                        .setDescription('XP is earned by chatting in **any channel** (10s cooldown). Level-up messages go to the configured setup channel.\n\u200b')
                         .addFields(
                             { name: '/leveling enable', value: 'Enable XP system', inline: true },
                             { name: '/leveling disable', value: 'Disable XP system', inline: true },
+                            { name: '/leveling setup-channel', value: 'Set level-up message channel', inline: true },
                             { name: '/leveling rank', value: 'View your level & XP', inline: true },
                             { name: '/leveling leaderboard', value: 'Top 10 levels', inline: true },
-                            { name: '/leveling channel-add', value: 'Restrict XP to channel', inline: true },
-                            { name: '/leveling channel-remove', value: 'Remove XP channel', inline: true },
+                            { name: '/leveling channel-add', value: 'Restrict XP gain to channel', inline: true },
+                            { name: '/leveling channel-remove', value: 'Remove XP channel restriction', inline: true },
                             { name: '!rank [@user]', value: 'Prefix: view rank', inline: true },
                             { name: '!leaderboard', value: 'Prefix: level leaderboard', inline: true },
                             { name: '!resetlevels [@user]', value: 'Admin: reset levels', inline: true }
+                        );
+                    break;
+
+                case 'util':
+                    embed = new EmbedBuilder()
+                        .setTitle('🔧 Utility Commands')
+                        .setColor(0x1A1C1E)
+                        .setDescription('Quick-access utility commands.\n\u200b')
+                        .addFields(
+                            { name: '!ping', value: 'Bot latency', inline: true },
+                            { name: '!uptime', value: 'How long bot has been online', inline: true },
+                            { name: '!status', value: 'Full bot status (ping, RAM, guilds)', inline: true },
+                            { name: '!invite', value: 'Get bot invite link', inline: true },
+                            { name: '!ss / !supportserver', value: 'Support server link', inline: true },
+                            { name: '!owner', value: 'Bot owner info', inline: true },
+                            { name: '!i', value: 'Alias for !invites', inline: true },
+                            { name: '!mc', value: 'Alias for !membercount', inline: true },
+                            { name: '!avatar [@user]', value: 'View avatar', inline: true },
+                            { name: '!serverinfo', value: 'Server statistics', inline: true },
+                            { name: '!userinfo [@user]', value: 'User profile info', inline: true },
+                            { name: '!membercount', value: 'Total member count', inline: true }
                         );
                     break;
 

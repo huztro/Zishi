@@ -37,21 +37,26 @@ async function handleAutoMod(message, ownerId) {
     if (message.author.bot) return;
 
     // Fetch member if not cached (required for permission checks)
-    if (!message.member) {
+    let member = message.member;
+    if (!member) {
         try {
-            await message.guild.members.fetch(message.author.id);
+            member = await message.guild.members.fetch(message.author.id);
         } catch {
             return; // Can't resolve member — skip
         }
     }
 
-    if (!message.member) return;
+    if (!member) return;
 
     // Owner always bypasses AutoMod entirely
     if (ownerId && message.author.id === ownerId) return;
 
     // Skip admins and moderators
-    if (message.member.permissions.has(PermissionFlagsBits.ManageMessages)) return;
+    if (member.permissions.has(PermissionFlagsBits.ManageMessages)) return;
+
+    // Ensure the bot itself has ManageMessages before attempting deletes
+    const botMember = message.guild.members.me;
+    const canDelete = botMember?.permissions.has(PermissionFlagsBits.ManageMessages) ?? false;
 
     const settings = getSettings(message.guild.id);
 
@@ -155,13 +160,18 @@ async function handleAutoMod(message, ownerId) {
     // ACTION: DELETE + WARN
     // ==========================================
     if (violated) {
-        await message.delete().catch(() => {});
+        // Only attempt deletion if the bot has ManageMessages
+        if (canDelete) {
+            await message.delete().catch(() => {});
+        }
 
         const warning = await message.channel.send({
             content: `⚠️ ${message.author} — **AutoMod:** ${reason}`
-        });
+        }).catch(() => null);
 
-        setTimeout(() => warning.delete().catch(() => {}), 5000);
+        if (warning) {
+            setTimeout(() => warning.delete().catch(() => {}), 5000);
+        }
 
         // Log to log channel if configured
         if (cfg.logChannel) {

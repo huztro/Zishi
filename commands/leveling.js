@@ -96,18 +96,37 @@ module.exports = {
         )
 
         // =========================
+        // SETUP CHANNEL
+        // Where level-up messages are sent
+        // =========================
+
+        .addSubcommand(sub =>
+            sub
+                .setName('setup-channel')
+                .setDescription('Set the channel where level-up messages are sent')
+
+                .addChannelOption(opt =>
+                    opt
+                        .setName('channel')
+                        .setDescription('Level-up announcement channel')
+                        .setRequired(true)
+                )
+        )
+
+        // =========================
         // CHANNEL ADD
+        // Channels where XP is earned (empty = all channels)
         // =========================
 
         .addSubcommand(sub =>
             sub
                 .setName('channel-add')
-                .setDescription('Add leveling channel')
+                .setDescription('Restrict XP gain to a specific channel')
 
                 .addChannelOption(opt =>
                     opt
                         .setName('channel')
-                        .setDescription('Channel')
+                        .setDescription('Channel where XP is earned')
                         .setRequired(true)
                 )
         )
@@ -119,12 +138,12 @@ module.exports = {
         .addSubcommand(sub =>
             sub
                 .setName('channel-remove')
-                .setDescription('Remove leveling channel')
+                .setDescription('Remove an XP channel restriction')
 
                 .addChannelOption(opt =>
                     opt
                         .setName('channel')
-                        .setDescription('Channel')
+                        .setDescription('Channel to remove')
                         .setRequired(true)
                 )
         )
@@ -194,6 +213,28 @@ module.exports = {
 
             return interaction.reply(
                 '❌ Leveling disabled.'
+            );
+        }
+
+        // ==========================================
+        // SETUP CHANNEL
+        // Sets where level-up announcements are posted
+        // ==========================================
+
+        if (sub === 'setup-channel') {
+
+            const channel =
+                interaction.options.getChannel('channel');
+
+            settings.leveling.setupChannel = channel.id;
+
+            saveSettings(
+                interaction.guild.id,
+                settings
+            );
+
+            return interaction.reply(
+                `✅ Level-up messages will now be sent to ${channel}.`
             );
         }
 
@@ -392,7 +433,9 @@ module.exports = {
         ) return;
 
         // =========================
-        // CHANNEL FILTER
+        // CHANNEL FILTER (XP gain restriction)
+        // If specific channels are configured, only earn XP there.
+        // If no channels are configured, XP is earned in ALL channels.
         // =========================
 
         if (
@@ -456,6 +499,8 @@ module.exports = {
 
         // =========================
         // LEVEL UP
+        // Send announcement to the configured setup channel only.
+        // Falls back to the current channel if none is set.
         // =========================
 
         if (
@@ -473,14 +518,29 @@ module.exports = {
                     )
 
                     .setDescription(
-                        `${message.author} reached level **${profile.level}**`
+                        `${message.author} reached level **${profile.level}**! 🚀`
                     )
 
-                    .setColor(0x2ECC71);
+                    .setColor(0x2ECC71)
 
-            message.channel.send({
+                    .setThumbnail(
+                        message.author.displayAvatarURL({ size: 128 })
+                    )
+
+                    .setTimestamp();
+
+            // Resolve the announcement channel
+            const setupChannelId =
+                settings.leveling.setupChannel;
+
+            const announceChannel =
+                setupChannelId
+                    ? (message.guild.channels.cache.get(setupChannelId) || message.channel)
+                    : message.channel;
+
+            announceChannel.send({
                 embeds: [embed]
-            });
+            }).catch(() => {});
         }
 
         saveLevels(levels);
