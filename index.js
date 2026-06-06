@@ -46,6 +46,7 @@ const levelingSystem = require('./commands/leveling.js');
 const autoresponderSystem = require('./commands/autoresponder.js');
 const tsetupCommand = require('./commands/tsetup.js');
 const utilityCommandsList = require('./commands/utility.js');
+const { handleShortcut } = require('./commands/shortcuts.js');
 const { getSettings } = require('./utils/settings.js');
 
 // =========================
@@ -206,50 +207,132 @@ register(
 );
 
 // =========================
-// HELP
+// HELP (unified — same menu for /help and !help)
+// =========================
+register(
+    helpCommand.data,
+    helpCommand.execute.bind(helpCommand)
+);
+
+// =========================
+// INVITE (bot invite link)
 // =========================
 register(
     new SlashCommandBuilder()
-        .setName('help')
-        .setDescription('Open help menu'),
+        .setName('invite')
+        .setDescription('Get the bot invite link'),
 
     async (interaction) => {
+        const clientId = interaction.client.user.id;
+        const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot+applications.commands`;
 
         const embed = new EmbedBuilder()
-            .setTitle('💎 Zishi Help')
+            .setTitle('🔗 Invite Zishi')
             .setDescription(
-                `Select a category below.`
+                `Add **Zishi** to your server and unlock powerful moderation, economy, leveling, and more!\n\n` +
+                `**[➕ Click Here to Invite](${inviteUrl})**`
             )
-            .setColor(0x1A1C1E);
+            .setColor(0x5865F2)
+            .setThumbnail(interaction.client.user.displayAvatarURL({ size: 256 }))
+            .setFooter({ text: 'Zishi Bot • Made by @ItzHuzaifa' })
+            .setTimestamp();
 
-        const menu = new StringSelectMenuBuilder()
-            .setCustomId('help_category_select')
-            .setPlaceholder('Select category')
-            .addOptions(
-                {
-                    label: 'Moderation',
-                    value: 'mod',
-                    emoji: '🛡️'
-                },
-                {
-                    label: 'Economy',
-                    value: 'eco',
-                    emoji: '💰'
-                },
-                {
-                    label: 'Fun',
-                    value: 'fun',
-                    emoji: '🎮'
-                }
-            );
+        await interaction.reply({ embeds: [embed] });
+    }
+);
 
-        const row =
-            new ActionRowBuilder().addComponents(menu);
+// =========================
+// SUPPORT SERVER
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('supportserver')
+        .setDescription('Get the support server link'),
 
-        await interaction.reply({
-            embeds: [embed],
-            components: [row]
-        });
+    async (interaction) => {
+        const embed = new EmbedBuilder()
+            .setTitle('🌟 Zishi Support Server')
+            .setDescription(
+                `Need help? Have a suggestion? Join our support server!\n\n` +
+                `**[🔗 Join Here](https://dsc.gg/froststar)**\n\n` +
+                `> Get help with setup\n` +
+                `> Report bugs & suggest features\n` +
+                `> Stay updated on new releases`
+            )
+            .setColor(0x2ECC71)
+            .setThumbnail(interaction.client.user.displayAvatarURL({ size: 256 }))
+            .setFooter({ text: 'Zishi Bot • Support Server' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [embed] });
+    }
+);
+
+// =========================
+// UPTIME
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('uptime')
+        .setDescription('View how long the bot has been online'),
+
+    async (interaction) => {
+        const totalSeconds = (Date.now() - startTime) / 1000;
+        const days    = Math.floor(totalSeconds / 86400);
+        const hours   = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        const parts   = [];
+        if (days)    parts.push(`${days}d`);
+        if (hours)   parts.push(`${hours}h`);
+        if (minutes) parts.push(`${minutes}m`);
+        parts.push(`${seconds}s`);
+
+        const embed = new EmbedBuilder()
+            .setTitle('⏳ Bot Uptime')
+            .setDescription(`**Zishi** has been online for:\n\`\`\`${parts.join(' ')}\`\`\``)
+            .setColor(0x00FFCC)
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [embed] });
+    }
+);
+
+// =========================
+// OWNER
+// =========================
+register(
+    new SlashCommandBuilder()
+        .setName('owner')
+        .setDescription('View bot owner information'),
+
+    async (interaction) => {
+        const ownerId = process.env.OWNER_ID;
+        let ownerUser = null;
+        if (ownerId) {
+            ownerUser = await interaction.client.users.fetch(ownerId).catch(() => null);
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle('👑 Bot Owner')
+            .setDescription(
+                `**Zishi** was created and is maintained by **@ItzHuzaifa**.\n\n` +
+                `> 🛠️ Developer & Designer\n` +
+                `> 💡 Feature Requests: Join the [Support Server](https://dsc.gg/froststar)\n` +
+                `> 🐛 Bug Reports: [Support Server](https://dsc.gg/froststar)`
+            )
+            .setColor(0xFFD700)
+            .setTimestamp();
+
+        if (ownerUser) {
+            embed
+                .setThumbnail(ownerUser.displayAvatarURL({ size: 256 }))
+                .addFields({ name: '🔖 Discord Tag', value: `\`${ownerUser.tag}\``, inline: true });
+        }
+
+        embed.setFooter({ text: 'Zishi Bot • Made with ❤️' });
+
+        await interaction.reply({ embeds: [embed] });
     }
 );
 
@@ -490,6 +573,9 @@ register(tsetupCommand.data, tsetupCommand.run);
 client.once('ready', async () => {
 
     console.log(`🚀 Logged in as ${client.user.tag}`);
+
+    // Expose commands map on client so shortcut handlers can delegate
+    client.commands = commands;
 
     giveawayModule.initializeGiveawayTrackers(client);
 
@@ -875,30 +961,12 @@ const commandName = args.shift().toLowerCase();
         return;
     }
 
-    // ---- PING ----
-    if (commandName === 'ping') {
-        const sent = await message.channel.send('🏓 Pinging...');
-        const latency = sent.createdTimestamp - message.createdTimestamp;
-        await sent.edit(`🏓 Pong!\nAPI: \`${client.ws.ping}ms\`\nLatency: \`${latency}ms\``);
-        return;
-    }
-
-    // ---- STATUS ----
-    if (commandName === 'status') {
-        const health = getHealthMetrics(client);
-        const embed = new EmbedBuilder()
-            .setTitle('🤖 Bot Status')
-            .setColor(0x00FFCC)
-            .addFields(
-                { name: '📡 Ping', value: `\`${health.ping}\``, inline: true },
-                { name: '⏳ Uptime', value: `\`${health.uptime}\``, inline: true },
-                { name: '💾 RAM', value: `\`${health.memory}\``, inline: true },
-                { name: '🏢 Guilds', value: `\`${health.guilds}\``, inline: true },
-                { name: '👥 Users', value: `\`${health.users}\``, inline: true }
-            )
-            .setTimestamp();
-        await message.channel.send({ embeds: [embed] });
-        return;
+    // ---- SHORTCUTS (ping, uptime, status, invite, ss, supportserver, owner, i, mc) ----
+    try {
+        const handled = await handleShortcut(message, commandName, args, client, startTime);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Shortcut Error]', err);
     }
 
     // ---- SETPREFIX ----
@@ -924,7 +992,10 @@ const commandName = args.shift().toLowerCase();
             // Basic command aliases
             av: 'avatar',
             si: 'serverinfo',
-            ui: 'userinfo'
+            ui: 'userinfo',
+            // Utility aliases
+            invites: 'invites',
+            membercount: 'membercount'
         };
         const resolvedName = prefixAliases[commandName] || commandName;
         const cmd = commands.get(resolvedName);
