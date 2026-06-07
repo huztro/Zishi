@@ -376,53 +376,12 @@ register(
 );
 
 // =========================
-// TICKET SYSTEM
-// =========================
-register(
-    new SlashCommandBuilder()
-        .setName('setup-tickets')
-        .setDescription('Setup ticket system')
-        .setDefaultMemberPermissions(
-            PermissionFlagsBits.Administrator
-        ),
-
-    async (interaction) => {
-
-        const embed = new EmbedBuilder()
-            .setTitle('🎫 Support System')
-            .setDescription(
-                'Click below to create a ticket.'
-            )
-            .setColor(0x2ECC71);
-
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('create_ticket_channel')
-                .setLabel('Open Ticket')
-                .setStyle(ButtonStyle.Primary)
-        );
-
-        await interaction.reply({
-            content: '✅ Ticket panel created.',
-            ephemeral: true
-        });
-
-        await interaction.channel.send({
-            embeds: [embed],
-            components: [row]
-        });
-    }
-);
-
-
-// =========================
 // LOAD EXTERNAL COMMAND MODULES
+// (moderation and economy are prefix-only — excluded from slash registration)
 // =========================
 
 const externalModules = [
-    moderationModule,       // plain array of commands
     applicationCommandsList,
-    economyModule,          // plain array of commands
     funCommandsList,
     basicCommandsList,      // avatar, serverinfo, userinfo, say, embed + aliases
     utilityCommandsList     // roleall, listroles, membercount, rolemembers, removeall, massban, massunban, memberinfo, roledeleteall, channelinfo
@@ -782,54 +741,6 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         // =========================
-        // CREATE TICKET (legacy setup-tickets panel)
-        // =========================
-        if (interaction.customId === 'create_ticket_channel') {
-
-            await interaction.deferReply({ ephemeral: true });
-
-            const ticket = await interaction.guild.channels.create({
-                name: `ticket-${interaction.user.username}`,
-                type: ChannelType.GuildText,
-                permissionOverwrites: [
-                    {
-                        id: interaction.guild.roles.everyone.id,
-                        deny: [PermissionFlagsBits.ViewChannel]
-                    },
-                    {
-                        id: interaction.user.id,
-                        allow: [
-                            PermissionFlagsBits.ViewChannel,
-                            PermissionFlagsBits.SendMessages
-                        ]
-                    }
-                ]
-            });
-
-            const embed = new EmbedBuilder()
-                .setTitle('🎫 Ticket Created')
-                .setDescription('Support will be with you shortly.')
-                .setColor(0x3498DB);
-
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('close_ticket_channel')
-                    .setLabel('Close Ticket')
-                    .setStyle(ButtonStyle.Danger)
-            );
-
-            await ticket.send({
-                content: `${interaction.user}`,
-                embeds: [embed],
-                components: [row]
-            });
-
-            await interaction.editReply({
-                content: `✅ Ticket created: ${ticket}`
-            });
-        }
-
-        // =========================
         // CLOSE TICKET
         // =========================
         if (
@@ -922,10 +833,7 @@ client.on('messageCreate', async (message) => {
                 lb: 'ecolb', leaderboard: 'ecolb'
             };
             const ecoName = ecoAliases[ecoCmd] || ecoCmd;
-            const ecoCommand = commands.get(ecoName);
-            if (ecoCommand) {
-                await ecoCommand.run(message, ecoArgs);
-            }
+            await economyModule.handlePrefix(message, ecoName, ecoArgs);
         }
     } catch (err) {
         console.error('[Economy Channel Error]', err);
@@ -1000,8 +908,8 @@ const commandName = args.shift().toLowerCase();
         const resolvedName = prefixAliases[commandName] || commandName;
         const cmd = commands.get(resolvedName);
         if (cmd) {
-            // Permission check for commands that declare required permissions
-            const cmdDef = [...moderationModule, ...economyModule, ...basicCommandsList, ...utilityCommandsList]
+            // Permission check for slash-registered commands that declare required permissions
+            const cmdDef = [...basicCommandsList, ...utilityCommandsList]
                 .find(c => c.name === resolvedName);
             if (cmdDef?.permissions && !message.member.permissions.has(cmdDef.permissions)) {
                 return message.reply({ content: '❌ You lack the required permissions.' });
@@ -1011,6 +919,24 @@ const commandName = args.shift().toLowerCase();
         }
     } catch (err) {
         console.error('[Prefix Command Error]', err);
+        message.reply({ content: '❌ Command failed.' }).catch(() => {});
+    }
+
+    // ---- MODERATION COMMANDS (prefix-only) ----
+    try {
+        const handled = await moderationModule.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix Moderation Error]', err);
+        message.reply({ content: '❌ Command failed.' }).catch(() => {});
+    }
+
+    // ---- ECONOMY COMMANDS (prefix-only) ----
+    try {
+        const handled = await economyModule.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix Economy Error]', err);
         message.reply({ content: '❌ Command failed.' }).catch(() => {});
     }
 

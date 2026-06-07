@@ -45,8 +45,7 @@ module.exports = {
                 `> Select a category below to explore commands\n` +
                 `> All commands work with \`/\` slash **and** \`!\` prefix\n\n` +
                 `💡 **Invite Bot:** [Click Here](${inviteUrl})\n` +
-                `🎉 **Support Server:** [Join Here](${SUPPORT_SERVER})\n` +
-                `👑 **Owner:** @ItzHuzaifa`
+                `🎉 **Support Server:** [Join Here](${SUPPORT_SERVER})`
             )
             .setColor(0x1A1C1E)
             .setThumbnail(client.user.displayAvatarURL({ size: 256 }))
@@ -96,7 +95,7 @@ module.exports = {
                     embed = new EmbedBuilder()
                         .setTitle('🛡️ Moderation (30+ Commands)')
                         .setColor(0x1A1C1E)
-                        .setDescription('All commands work with `/` slash AND `!` prefix.\n\u200b')
+                        .setDescription('All commands use the `!` prefix.\n\u200b')
                         .addFields(
                             { name: '👢 kick', value: 'Kick a member', inline: true },
                             { name: '🔨 ban', value: 'Permanently ban', inline: true },
@@ -140,7 +139,7 @@ module.exports = {
                         .setColor(0x1A1C1E)
                         .setDescription('Setup and configuration commands.\n\u200b')
                         .addFields(
-                            { name: '/setup-tickets', value: 'Create ticket panel', inline: true },
+                            { name: '/tsetup', value: 'Create ticket panel', inline: true },
                             { name: '/setup-verification', value: 'Create verify panel', inline: true },
                             { name: '/welcomesetup', value: 'Setup welcome messages', inline: true },
                             { name: '/automod enable/disable', value: 'Toggle AutoMod', inline: true },
@@ -158,7 +157,7 @@ module.exports = {
                     embed = new EmbedBuilder()
                         .setTitle('💰 Economy')
                         .setColor(0x1A1C1E)
-                        .setDescription('All commands work with `/` slash AND `!` prefix.\n\u200b')
+                        .setDescription('All commands use the `!` prefix.\n\u200b')
                         .addFields(
                             { name: '💰 bal', value: 'Check balance', inline: true },
                             { name: '📆 daily', value: 'Claim daily ($1,000)', inline: true },

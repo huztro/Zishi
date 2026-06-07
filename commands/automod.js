@@ -160,17 +160,23 @@ async function handleAutoMod(message, ownerId) {
     // ACTION: DELETE + WARN
     // ==========================================
     if (violated) {
-        // Only attempt deletion if the bot has ManageMessages
-        if (canDelete) {
-            await message.delete().catch(() => {});
+        console.log(`[AutoMod] Violation in ${message.guild.name} by ${message.author.tag}: ${reason}`);
+
+        // Attempt to delete the offending message
+        if (!message.deleted) {
+            await message.delete().catch(err => {
+                console.warn(`[AutoMod] Could not delete message: ${err.message}`);
+            });
         }
 
-        const warning = await message.channel.send({
-            content: `⚠️ ${message.author} — **AutoMod:** ${reason}`
-        }).catch(() => null);
-
-        if (warning) {
+        // Send a warning in the channel and auto-delete it after 5s
+        try {
+            const warning = await message.channel.send({
+                content: `⚠️ ${message.author} — **AutoMod:** ${reason}`
+            });
             setTimeout(() => warning.delete().catch(() => {}), 5000);
+        } catch (err) {
+            console.warn(`[AutoMod] Could not send warning: ${err.message}`);
         }
 
         // Log to log channel if configured
