@@ -106,9 +106,10 @@ async function getMuteRole(guild) {
 }
 
 // ==========================================
-// COMMANDS EXPORT
+// COMMANDS (prefix-only — no slash registration)
 // ==========================================
-module.exports = [
+const moderationCommands = [
+
 
 /* =========================
    1. KICK
@@ -1143,5 +1144,32 @@ module.exports = [
     }
 }
 
-]; // end commands array
+]; // end moderationCommands array
 
+// ==========================================
+// MODULE EXPORT — prefix-only, no slash registration
+// ==========================================
+module.exports = {
+    // Expose the raw list so index.js can do permission lookups
+    commands: moderationCommands,
+
+    // Prefix handler: routes !kick, !ban, etc.
+    async handlePrefix(message, commandName, args) {
+        const cmd = moderationCommands.find(c => c.name === commandName);
+        if (!cmd) return false;
+
+        // Permission check
+        if (cmd.permissions && !message.member.permissions.has(cmd.permissions)) {
+            await message.reply({ content: '❌ You lack the required permissions.' });
+            return true;
+        }
+
+        try {
+            await cmd.run(message, args);
+        } catch (err) {
+            console.error(`[Moderation Prefix Error] !${commandName}:`, err);
+            await message.reply({ content: '❌ Command failed.' }).catch(() => {});
+        }
+        return true;
+    }
+};

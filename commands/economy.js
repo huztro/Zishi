@@ -73,7 +73,7 @@ const SHOP_ITEMS = {
     }
 };
 
-module.exports = [
+const economyCommands = [
 
         // ==========================================
         // BALANCE
@@ -641,4 +641,26 @@ module.exports = [
             }
         }
 
-]; // end commands array
+]; // end economyCommands array
+
+// ==========================================
+// MODULE EXPORT — prefix-only, no slash registration
+// ==========================================
+module.exports = {
+    // Expose the raw list so index.js can do permission lookups
+    commands: economyCommands,
+
+    // Prefix handler: routes !bal, !daily, !work, etc.
+    async handlePrefix(message, commandName, args) {
+        const cmd = economyCommands.find(c => c.name === commandName);
+        if (!cmd) return false;
+
+        try {
+            await cmd.run(message, args);
+        } catch (err) {
+            console.error(`[Economy Prefix Error] !${commandName}:`, err);
+            await message.reply({ content: '❌ Command failed.' }).catch(() => {});
+        }
+        return true;
+    }
+};
