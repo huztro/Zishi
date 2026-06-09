@@ -42,6 +42,7 @@ const basicCommandsList = require('./commands/basic.js');
 const helpCommand = require('./commands/help.js');
 const autoModSystem = require('./commands/automod.js');
 const autoReactSystem = require('./commands/autoreact.js');
+const reactionRolesSystem = require('./commands/reactionroles.js');
 const levelingSystem = require('./commands/leveling.js');
 const autoresponderSystem = require('./commands/autoresponder.js');
 const tsetupCommand = require('./commands/tsetup.js');
@@ -72,8 +73,9 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildBans,
-        GatewayIntentBits.GuildInvites,    // Required for invite tracking
-        GatewayIntentBits.MessageContent   // Required for prefix commands
+        GatewayIntentBits.GuildInvites,          // Required for invite tracking
+        GatewayIntentBits.MessageContent,        // Required for prefix commands
+        GatewayIntentBits.GuildMessageReactions  // Required for reaction roles
     ],
     partials: [
         Partials.Message,
@@ -494,6 +496,11 @@ if (levelingSystem.data) {
 // Autoresponder slash command
 if (autoresponderSystem.data) {
     register(autoresponderSystem.data, autoresponderSystem.execute.bind(autoresponderSystem));
+}
+
+// Reaction Roles slash command (/rr)
+if (reactionRolesSystem.data) {
+    register(reactionRolesSystem.data, reactionRolesSystem.execute.bind(reactionRolesSystem));
 }
 
 // Welcome commands
@@ -1014,6 +1021,28 @@ client.on('guildMemberRemove', async (member) => {
         await invitesModule.handleMemberLeave(member);
     } catch (err) {
         console.error('[Invite Leave Error]', err);
+    }
+});
+
+// =========================
+// REACTION ADD (Reaction Roles)
+// =========================
+client.on('messageReactionAdd', async (reaction, user) => {
+    try {
+        await reactionRolesSystem.handleReactionAdd(reaction, user);
+    } catch (err) {
+        console.error('[ReactionRoles Add Error]', err);
+    }
+});
+
+// =========================
+// REACTION REMOVE (Reaction Roles)
+// =========================
+client.on('messageReactionRemove', async (reaction, user) => {
+    try {
+        await reactionRolesSystem.handleReactionRemove(reaction, user);
+    } catch (err) {
+        console.error('[ReactionRoles Remove Error]', err);
     }
 });
 
