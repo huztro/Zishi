@@ -49,6 +49,7 @@ const tsetupCommand = require('./commands/tsetup.js');
 const utilityCommandsList = require('./commands/utility.js');
 const { handleShortcut } = require('./commands/shortcuts.js');
 const { getSettings } = require('./utils/settings.js');
+const noPrefixSystem = require('./commands/noprefix.js');
 
 // =========================
 // PREFIX CONFIG
@@ -533,6 +534,9 @@ if (giveawayModule.commands) {
 // Ticket setup command
 register(tsetupCommand.data, tsetupCommand.run);
 
+// NoPrefix slash command
+register(noPrefixSystem.data, noPrefixSystem.execute.bind(noPrefixSystem));
+
 // =========================
 // READY
 // =========================
@@ -544,6 +548,9 @@ client.once('ready', async () => {
     client.commands = commands;
 
     giveawayModule.initializeGiveawayTrackers(client);
+
+    // Start no-prefix expiry timer (checks every minute)
+    noPrefixSystem.startExpiryTimer(client);
 
     // Cache invite snapshots for all guilds (for invite tracking)
     for (const guild of client.guilds.cache.values()) {
@@ -664,6 +671,19 @@ client.on('interactionCreate', async (interaction) => {
     // BUTTONS
     // =========================
     if (interaction.isButton()) {
+
+        // =========================
+        // MOD DELETE BUTTON
+        // Trash emoji button on mod command responses — deletes the message
+        // =========================
+        if (interaction.customId === 'mod_delete_message') {
+            try {
+                await interaction.message.delete();
+            } catch {
+                await interaction.reply({ content: '❌ Could not delete the message.', ephemeral: true }).catch(() => {});
+            }
+            return;
+        }
 
         // =========================
         // GIVEAWAY BUTTONS
@@ -848,21 +868,30 @@ client.on('messageCreate', async (message) => {
 
     // =========================
     // PREFIX COMMANDS
+    // Supports both prefixed messages AND no-prefix users
     // =========================
-const prefixes = getPrefixes(message.guild.id);
+    const prefixes = getPrefixes(message.guild.id);
+    const prefix = prefixes.find(p => message.content.startsWith(p));
 
-const prefix = prefixes.find(p =>
-    message.content.startsWith(p)
-);
+    // Check if this user has no-prefix access
+    const userHasNoPrefix = noPrefixSystem.hasNoPrefix(message.guild.id, message.author.id);
 
-if (!prefix) return;
+    // If no prefix found and user doesn't have no-prefix access, stop here
+    if (!prefix && !userHasNoPrefix) return;
 
-const args = message.content
-    .slice(prefix.length)
-    .trim()
-    .split(/ +/);
+    let args, commandName;
 
-const commandName = args.shift().toLowerCase();
+    if (prefix) {
+        // Normal prefixed command
+        const parts = message.content.slice(prefix.length).trim().split(/ +/);
+        commandName = parts.shift().toLowerCase();
+        args = parts;
+    } else {
+        // No-prefix user — treat the whole message as a command
+        const parts = message.content.trim().split(/ +/);
+        commandName = parts.shift().toLowerCase();
+        args = parts;
+    }
 
     if (!commandName) return;
 
@@ -894,6 +923,23 @@ const commandName = args.shift().toLowerCase();
         global.prefixes ??= {};
         global.prefixes[message.guild.id] = ['!', '.', newPrefix];
         return message.reply({ content: `✅ Prefix updated to **${newPrefix}**` });
+    }
+
+    // ---- NOPREFIX COMMANDS ----
+    try {
+        const handled = await noPrefixSystem.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[NoPrefix Error]', err);
+    }
+
+    // ---- GIVEAWAY PREFIX COMMANDS ----
+    try {
+        const handled = await giveawayModule.handleGiveawayPrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Giveaway Prefix Error]', err);
+        message.reply({ content: '❌ Giveaway command failed.' }).catch(() => {});
     }
 
     // ---- ALL COMMANDS (via commands Map + aliases) ----

@@ -6,6 +6,9 @@
 
 const {
     EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     PermissionFlagsBits,
     ChannelType
 } = require('discord.js');
@@ -17,7 +20,6 @@ function createPremiumEmbed(title, description = '', executioner) {
     const embed = new EmbedBuilder()
         .setTitle(`🔹 ${title}`)
         .setColor(0x1A1C1E)
-        .setThumbnail('https://i.postimg.cc/d3zdwyjL/OIP.webp')
         .setFooter({
             text: `Action taken by ${executioner.username}`,
             iconURL: executioner.displayAvatarURL({ size: 256 })
@@ -29,6 +31,19 @@ function createPremiumEmbed(title, description = '', executioner) {
     }
 
     return embed;
+}
+
+// ==========================================
+// DELETE BUTTON ROW
+// Adds a 🗑️ trash button that deletes the mod response
+// ==========================================
+function deleteButtonRow() {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('mod_delete_message')
+            .setEmoji('🗑️')
+            .setStyle(ButtonStyle.Danger)
+    );
 }
 
 // ==========================================
@@ -68,14 +83,21 @@ function resolveString(ctx, args, optionName, argStart = 1) {
 }
 
 // Unified reply that works for both slash and prefix
+// Automatically appends the delete button to any embed response
 async function reply(ctx, data) {
+    // Inject delete button into embed responses
+    if (typeof data === 'object' && data.embeds && data.embeds.length > 0) {
+        data = { ...data, components: [deleteButtonRow()] };
+    }
+
     if (ctx.isCommand?.()) {
         if (ctx.deferred || ctx.replied) return ctx.editReply(data);
         return ctx.reply(data);
     }
     const content = typeof data === 'string' ? data : data.content;
     const embeds = typeof data === 'object' ? data.embeds : undefined;
-    return ctx.channel.send({ content, embeds });
+    const components = typeof data === 'object' ? data.components : undefined;
+    return ctx.channel.send({ content, embeds, components });
 }
 
 // ==========================================
@@ -581,7 +603,7 @@ const moderationCommands = [
         await channel.delete();
 
         const embed = createPremiumEmbed('Channel Nuked', `Channel has been reset.`, executor);
-        await newChannel.send({ embeds: [embed] });
+        await newChannel.send({ embeds: [embed], components: [deleteButtonRow()] });
     }
 },
 
