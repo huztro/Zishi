@@ -115,12 +115,53 @@ async function handleMemberLeave(member) {
     saveInviteData(db);
 }
 
+// =========================
+// PREFIX COMMAND HANDLER  (called from index.js)
+// Handles: !invites [@user]
+// =========================
+async function handlePrefix(message, commandName, args) {
+    if (!message.guild)              return false;
+    if (commandName !== 'invites')   return false;
+
+    // Resolve target user — mention, ID, or self
+    let targetUser = message.mentions.users.first();
+    if (!targetUser && args[0]) {
+        targetUser = await message.client.users.fetch(args[0]).catch(() => null);
+    }
+    if (!targetUser) targetUser = message.author;
+
+    const db        = getInviteData();
+    const guildData = db[message.guild.id] || {};
+    const stats     = guildData[targetUser.id] || { regular: 0, bonus: 0, leaves: 0 };
+
+    const regular = stats.regular || 0;
+    const bonus   = stats.bonus   || 0;
+    const leaves  = stats.leaves  || 0;
+    const total   = regular + bonus - leaves;
+
+    const embed = new EmbedBuilder()
+        .setTitle(`📨 Invite Stats: ${targetUser.username}`)
+        .setColor(0x3498DB)
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+        .addFields(
+            { name: '🟢 Joined',      value: `\`${regular}\` users`,   inline: true  },
+            { name: '🔴 Left',        value: `\`${leaves}\` users`,    inline: true  },
+            { name: '✨ Bonus',        value: `\`${bonus}\` granted`,   inline: true  },
+            { name: '📊 Net Invites', value: `\`${total}\` valid invites`, inline: false }
+        )
+        .setTimestamp();
+
+    await message.channel.send({ embeds: [embed] });
+    return true;
+}
+
 module.exports = {
 
     invitesCache,
     cacheGuildInvites,
     handleMemberJoin,
     handleMemberLeave,
+    handlePrefix,
 
     commands: [
 

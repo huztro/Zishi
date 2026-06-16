@@ -1,6 +1,20 @@
 /**
- * Nexora Premium-Tier Welcome Configuration Subsystem
- * Architecture Support: FULL SLASH COMMAND FRAMEWORK
+ * Zishi — Welcome System
+ *
+ * Slash commands:
+ *   /welcome setup <channel> <message>  — Configure welcome messages
+ *   /welcome disable                    — Disable welcome messages
+ *   /welcome preview                    — Preview the current welcome message
+ *   /welcome test                       — Send a test welcome to the configured channel
+ *
+ * Prefix commands:
+ *   !welcome setup #channel <message>   — Configure welcome messages
+ *   !welcome disable                    — Disable welcome messages
+ *   !welcome preview                    — Preview the current welcome message
+ *   !welcome test                       — Send a test welcome to the configured channel
+ *
+ * Placeholders: {user}, {guild}, {count}
+ * Config stored in data/guildSettings.json via utils/settings.js
  */
 
 const {
@@ -10,326 +24,373 @@ const {
     SlashCommandBuilder
 } = require('discord.js');
 
-// Runtime memory database
-const welcomeDatabase = new Map();
+const { getSettings, saveSettings } = require('../utils/settings');
 
-module.exports = {
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
 
-    welcomeDatabase,
+/** Resolve welcome config for a guild, or null if not set up. */
+function getWelcomeConfig(guildId) {
+    const settings = getSettings(guildId);
+    return settings.welcomeConfig || null;
+}
 
-    commands: [
+/** Save welcome config for a guild. */
+function saveWelcomeConfig(guildId, config) {
+    const settings = getSettings(guildId);
+    settings.welcomeConfig = config;
+    saveSettings(guildId, settings);
+}
 
-        // ==================================================
-        // WELCOME SETUP
-        // ==================================================
-        {
-            data: new SlashCommandBuilder()
-                .setName('welcomesetup')
-                .setDescription(
-                    'Setup Welcome Messages For The Server.'
-                )
-                .setDefaultMemberPermissions(
-                    PermissionFlagsBits.Administrator
-                )
-                .addChannelOption(option =>
-                    option
-                        .setName('channel')
-                        .setDescription(
-                            'The text channel to stream greetings into'
-                        )
-                        .addChannelTypes(
-                            ChannelType.GuildText
-                        )
-                        .setRequired(true)
-                )
-                .addStringOption(option =>
-                    option
-                        .setName('message')
-                        .setDescription(
-                            'Use {user} and {guild} as variables.'
-                        )
-                        .setRequired(true)
-                ),
+/** Replace {user}, {guild}, {count} placeholders. */
+function resolvePlaceholders(template, member) {
+    return template
+        .replace(/{user}/g,  member.toString())
+        .replace(/{guild}/g, member.guild.name)
+        .replace(/{count}/g, member.guild.memberCount.toString());
+}
 
-            async run(interaction) {
+/** Build the welcome embed sent when a member joins. */
+function buildWelcomeEmbed(member, messageText) {
+    return new EmbedBuilder()
+        .setTitle(`👋 Welcome to ${member.guild.name}!`)
+        .setDescription(messageText)
+        .setColor(0x5865F2)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .addFields({
+            name: '👥 Member Count',
+            value: `You are member **#${member.guild.memberCount.toLocaleString()}**`,
+            inline: true
+        })
+        .setFooter({ text: `${member.guild.name} • Welcome System` })
+        .setTimestamp();
+}
 
-                const guild =
-                    interaction.guild;
+// ─────────────────────────────────────────────
+// MEMBER JOIN HANDLER  (called from index.js)
+// ─────────────────────────────────────────────
+async function handleMemberJoin(member) {
+    const config = getWelcomeConfig(member.guild.id);
+    if (!config || !config.enabled || !config.channelId || !config.message) return;
 
-                const channel =
-                    interaction.options.getChannel(
-                        'channel'
-                    );
+    const channel = member.guild.channels.cache.get(config.channelId);
+    if (!channel || channel.type !== ChannelType.GuildText) return;
 
-                const message =
-                    interaction.options.getString(
-                        'message'
-                    );
+    const messageText = resolvePlaceholders(config.message, member);
+    const embed = buildWelcomeEmbed(member, messageText);
 
-                if (
-                    !channel ||
-                    channel.type !==
-                        ChannelType.GuildText
-                ) {
+    await channel.send({
+        content: `${member}`,
+        embeds: [embed]
+    }).catch(err => console.warn(`[Welcome] Could not send welcome message: ${err.message}`));
+}
 
-                    return interaction.reply({
-                        content:
-                            '❌ **Setup Error:** The designated logging channel target must be a standard text layout channel.',
-                        ephemeral: true
-                    });
-                }
+// ─────────────────────────────────────────────
+// PREFIX COMMAND HANDLER  (called from index.js)
+// Handles: !welcome setup / disable / preview / test
+// ─────────────────────────────────────────────
+async function handlePrefix(message, commandName, args) {
+    if (!message.guild)             return false;
+    if (commandName !== 'welcome')  return false;
 
-                if (!message) {
+    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+        await message.reply({ content: '❌ Administrator permission required.' });
+        return true;
+    }
 
-                    return interaction.reply({
-                        content:
-                            '❌ **Setup Error:** Please provide a custom welcome message payload string.',
-                        ephemeral: true
-                    });
-                }
+    const sub = args?.[0]?.toLowerCase();
 
-                welcomeDatabase.set(
-                    guild.id,
-                    {
-                        channelId: channel.id,
-                        message: message
-                    }
-                );
-
-                const embed =
-                    new EmbedBuilder()
-                        .setTitle(
-                            '👋 Welcome Engine Configured'
-                        )
-                        .setColor(0x2ECC71)
-                        .addFields(
-                            {
-                                name:
-                                    '📡 Stream Target Channel',
-                                value: `${channel}`,
-                                inline: true
-                            },
-                            {
-                                name:
-                                    '📄 Active Phrase String',
-                                value:
-                                    `\`\`\`${message}\`\`\``,
-                                inline: false
-                            }
-                        )
-                        .setTimestamp();
-
-                return interaction.reply({
-                    embeds: [embed]
-                });
-            }
-        },
-
-        // ==================================================
-        // WELCOME EDIT
-        // ==================================================
-        {
-            data: new SlashCommandBuilder()
-                .setName('welcomeedit')
-                .setDescription(
-                    'Edit Current Welcome Channel Or Message.'
-                )
-                .setDefaultMemberPermissions(
-                    PermissionFlagsBits.Administrator
-                )
-                .addChannelOption(option =>
-                    option
-                        .setName('channel')
-                        .setDescription(
-                            'The modified target text channel'
-                        )
-                        .addChannelTypes(
-                            ChannelType.GuildText
-                        )
-                        .setRequired(true)
-                )
-                .addStringOption(option =>
-                    option
-                        .setName('message')
-                        .setDescription(
-                            'The upgraded phrase layout matrix profile string.'
-                        )
-                        .setRequired(true)
-                ),
-
-            async run(interaction) {
-
-                const guild =
-                    interaction.guild;
-
-                if (
-                    !welcomeDatabase.has(
-                        guild.id
-                    )
-                ) {
-
-                    return interaction.reply({
-                        content:
-                            '❌ **Operational Fault:** No welcome profile found on this guild. Use `/welcomesetup` first.',
-                        ephemeral: true
-                    });
-                }
-
-                const channel =
-                    interaction.options.getChannel(
-                        'channel'
-                    );
-
-                const message =
-                    interaction.options.getString(
-                        'message'
-                    );
-
-                if (
-                    !channel ||
-                    channel.type !==
-                        ChannelType.GuildText
-                ) {
-
-                    return interaction.reply({
-                        content:
-                            '❌ **Setup Error:** Target must be a standard text channel.',
-                        ephemeral: true
-                    });
-                }
-
-                welcomeDatabase.set(
-                    guild.id,
-                    {
-                        channelId: channel.id,
-                        message: message
-                    }
-                );
-
-                const embed =
-                    new EmbedBuilder()
-                        .setTitle(
-                            '🔄 Welcome Engine Manifest Patched'
-                        )
-                        .setColor(0x3498DB)
-                        .addFields(
-                            {
-                                name:
-                                    '📡 New Target Channel',
-                                value: `${channel}`,
-                                inline: true
-                            },
-                            {
-                                name:
-                                    '📄 Updated Phrase String',
-                                value:
-                                    `\`\`\`${message}\`\`\``,
-                                inline: false
-                            }
-                        )
-                        .setTimestamp();
-
-                return interaction.reply({
-                    embeds: [embed]
-                });
-            }
-        },
-
-        // ==================================================
-        // WELCOME TEST
-        // ==================================================
-        {
-            data: new SlashCommandBuilder()
-                .setName('welcometest')
-                .setDescription(
-                    'Test welcome message.'
-                )
-                .setDefaultMemberPermissions(
-                    PermissionFlagsBits.Administrator
-                )
-                .addChannelOption(option =>
-                    option
-                        .setName('channel')
-                        .setDescription(
-                            'The text channel target layout to evaluate'
-                        )
-                        .addChannelTypes(
-                            ChannelType.GuildText
-                        )
-                        .setRequired(true)
-                ),
-
-            async run(interaction) {
-
-                const channel =
-                    interaction.options.getChannel(
-                        'channel'
-                    );
-
-                const user =
-                    interaction.user;
-
-                if (
-                    !channel ||
-                    channel.type !==
-                        ChannelType.GuildText
-                ) {
-
-                    return interaction.reply({
-                        content:
-                            '❌ **Validation Fault:** Simulated testing routes require an active text node.',
-                        ephemeral: true
-                    });
-                }
-
-                const guildConfig =
-                    welcomeDatabase.get(
-                        interaction.guild.id
-                    );
-
-                const phraseString =
-                    guildConfig
-                        ? guildConfig.message
-                        : '👋 Welcome {user} to **{guild}**! We are glad you are here.';
-
-                const localizedMessage =
-                    phraseString
-                        .replace(
-                            /{user}/g,
-                            `${user}`
-                        )
-                        .replace(
-                            /{guild}/g,
-                            `${interaction.guild.name}`
-                        );
-
-                const testEmbed =
-                    new EmbedBuilder()
-                        .setTitle(
-                            'Welcome {user}'
-                        )
-                        .setDescription(
-                            localizedMessage
-                        )
-                        .setColor(0x9B59B6)
-                        .setThumbnail(
-                            user.displayAvatarURL({
-                                dynamic: true
-                            })
-                        )
-                        .setTimestamp();
-
-                await channel.send({
-                    content: `${user}`,
-                    embeds: [testEmbed]
-                });
-
-                return interaction.reply({
-                    content:
-                        `✅ **Simulation Complete:** Sent output sequence straight to channel node: ${channel}`,
-                    ephemeral: true
-                });
-            }
+    // ── setup ──────────────────────────────────
+    if (sub === 'setup') {
+        // Args: !welcome setup #channel <message...>
+        const channelMention = args[1];
+        if (!channelMention) {
+            await message.reply({
+                content: '❌ Usage: `!welcome setup #channel <message>`\nPlaceholders: `{user}`, `{guild}`, `{count}`'
+            });
+            return true;
         }
-    ]
+
+        // Resolve channel from mention or ID
+        const channelId = channelMention.replace(/[<#>]/g, '');
+        const channel = message.guild.channels.cache.get(channelId);
+
+        if (!channel || channel.type !== ChannelType.GuildText) {
+            await message.reply({ content: '❌ Please mention a valid text channel.' });
+            return true;
+        }
+
+        const welcomeMessage = args.slice(2).join(' ');
+        if (!welcomeMessage) {
+            await message.reply({
+                content: '❌ Please provide a welcome message.\nExample: `!welcome setup #welcome Welcome {user} to {guild}! You are member #{count}.`'
+            });
+            return true;
+        }
+
+        saveWelcomeConfig(message.guild.id, {
+            enabled:   true,
+            channelId: channel.id,
+            message:   welcomeMessage
+        });
+
+        const embed = new EmbedBuilder()
+            .setTitle('👋 Welcome System Configured')
+            .setColor(0x2ECC71)
+            .addFields(
+                { name: '📢 Channel',  value: `${channel}`,                                inline: true  },
+                { name: '📄 Message',  value: `\`\`\`${welcomeMessage}\`\`\``,             inline: false },
+                { name: '💡 Tip',      value: 'Use `{user}`, `{guild}`, `{count}` as placeholders.', inline: false }
+            )
+            .setTimestamp();
+
+        await message.channel.send({ embeds: [embed] });
+        return true;
+    }
+
+    // ── disable ────────────────────────────────
+    if (sub === 'disable') {
+        const existing = getWelcomeConfig(message.guild.id);
+        if (!existing) {
+            await message.reply({ content: '⚠️ Welcome system is not configured yet.' });
+            return true;
+        }
+        saveWelcomeConfig(message.guild.id, { ...existing, enabled: false });
+
+        const embed = new EmbedBuilder()
+            .setDescription('❌ Welcome messages have been **disabled**.')
+            .setColor(0xE74C3C)
+            .setTimestamp();
+
+        await message.channel.send({ embeds: [embed] });
+        return true;
+    }
+
+    // ── preview ────────────────────────────────
+    if (sub === 'preview') {
+        const config = getWelcomeConfig(message.guild.id);
+        if (!config || !config.message) {
+            await message.reply({ content: '❌ No welcome message configured. Use `!welcome setup` first.' });
+            return true;
+        }
+
+        const messageText = resolvePlaceholders(config.message, message.member);
+        const embed = buildWelcomeEmbed(message.member, messageText);
+
+        const statusEmbed = new EmbedBuilder()
+            .setTitle('👁️ Welcome Message Preview')
+            .setColor(0x3498DB)
+            .addFields(
+                { name: '⚡ Status',   value: config.enabled ? '✅ Enabled' : '❌ Disabled', inline: true },
+                { name: '📢 Channel',  value: config.channelId ? `<#${config.channelId}>` : '*not set*', inline: true },
+                { name: '📄 Template', value: `\`\`\`${config.message}\`\`\``, inline: false }
+            )
+            .setTimestamp();
+
+        await message.channel.send({ embeds: [statusEmbed, embed] });
+        return true;
+    }
+
+    // ── test ───────────────────────────────────
+    if (sub === 'test') {
+        const config = getWelcomeConfig(message.guild.id);
+        if (!config || !config.channelId || !config.message) {
+            await message.reply({ content: '❌ No welcome message configured. Use `!welcome setup` first.' });
+            return true;
+        }
+
+        const channel = message.guild.channels.cache.get(config.channelId);
+        if (!channel) {
+            await message.reply({ content: '❌ Configured welcome channel no longer exists. Please run `!welcome setup` again.' });
+            return true;
+        }
+
+        const messageText = resolvePlaceholders(config.message, message.member);
+        const embed = buildWelcomeEmbed(message.member, messageText);
+
+        await channel.send({ content: `${message.member}`, embeds: [embed] });
+        await message.reply({ content: `✅ Test welcome sent to ${channel}.` });
+        return true;
+    }
+
+    // ── help ───────────────────────────────────
+    await message.reply(
+        '**Welcome System Commands:**\n' +
+        '`!welcome setup #channel <message>` — Configure welcome messages\n' +
+        '`!welcome disable` — Disable welcome messages\n' +
+        '`!welcome preview` — Preview the current welcome message\n' +
+        '`!welcome test` — Send a test welcome to the configured channel\n\n' +
+        '**Placeholders:** `{user}`, `{guild}`, `{count}`\n' +
+        '*Use `/welcome` for slash command version.*'
+    );
+    return true;
+}
+
+// ─────────────────────────────────────────────
+// SLASH COMMAND DEFINITION
+// ─────────────────────────────────────────────
+const data = new SlashCommandBuilder()
+    .setName('welcome')
+    .setDescription('Configure the welcome message system')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+
+    // setup
+    .addSubcommand(sub =>
+        sub.setName('setup')
+            .setDescription('Set up the welcome message for this server')
+            .addChannelOption(opt =>
+                opt.setName('channel')
+                    .setDescription('Channel to send welcome messages in')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)
+            )
+            .addStringOption(opt =>
+                opt.setName('message')
+                    .setDescription('Welcome message — use {user}, {guild}, {count} as placeholders')
+                    .setRequired(true)
+            )
+    )
+
+    // disable
+    .addSubcommand(sub =>
+        sub.setName('disable')
+            .setDescription('Disable welcome messages for this server')
+    )
+
+    // preview
+    .addSubcommand(sub =>
+        sub.setName('preview')
+            .setDescription('Preview the current welcome message')
+    )
+
+    // test
+    .addSubcommand(sub =>
+        sub.setName('test')
+            .setDescription('Send a test welcome message to the configured channel')
+    );
+
+// ─────────────────────────────────────────────
+// EXECUTE
+// ─────────────────────────────────────────────
+async function execute(interaction) {
+    const sub     = interaction.options.getSubcommand();
+    const guildId = interaction.guild.id;
+
+    // ── setup ──────────────────────────────────
+    if (sub === 'setup') {
+        const channel        = interaction.options.getChannel('channel');
+        const welcomeMessage = interaction.options.getString('message');
+
+        if (!channel || channel.type !== ChannelType.GuildText) {
+            return interaction.reply({
+                content: '❌ Please select a valid text channel.',
+                ephemeral: true
+            });
+        }
+
+        saveWelcomeConfig(guildId, {
+            enabled:   true,
+            channelId: channel.id,
+            message:   welcomeMessage
+        });
+
+        const embed = new EmbedBuilder()
+            .setTitle('👋 Welcome System Configured')
+            .setColor(0x2ECC71)
+            .addFields(
+                { name: '📢 Channel',  value: `${channel}`,                                inline: true  },
+                { name: '📄 Message',  value: `\`\`\`${welcomeMessage}\`\`\``,             inline: false },
+                { name: '💡 Tip',      value: 'Use `{user}`, `{guild}`, `{count}` as placeholders.', inline: false }
+            )
+            .setTimestamp();
+
+        return interaction.reply({ embeds: [embed] });
+    }
+
+    // ── disable ────────────────────────────────
+    if (sub === 'disable') {
+        const existing = getWelcomeConfig(guildId);
+        if (!existing) {
+            return interaction.reply({
+                content: '⚠️ Welcome system is not configured yet.',
+                ephemeral: true
+            });
+        }
+        saveWelcomeConfig(guildId, { ...existing, enabled: false });
+
+        return interaction.reply({
+            embeds: [
+                new EmbedBuilder()
+                    .setDescription('❌ Welcome messages have been **disabled**.')
+                    .setColor(0xE74C3C)
+                    .setTimestamp()
+            ]
+        });
+    }
+
+    // ── preview ────────────────────────────────
+    if (sub === 'preview') {
+        const config = getWelcomeConfig(guildId);
+        if (!config || !config.message) {
+            return interaction.reply({
+                content: '❌ No welcome message configured. Use `/welcome setup` first.',
+                ephemeral: true
+            });
+        }
+
+        const messageText = resolvePlaceholders(config.message, interaction.member);
+        const embed = buildWelcomeEmbed(interaction.member, messageText);
+
+        const statusEmbed = new EmbedBuilder()
+            .setTitle('👁️ Welcome Message Preview')
+            .setColor(0x3498DB)
+            .addFields(
+                { name: '⚡ Status',   value: config.enabled ? '✅ Enabled' : '❌ Disabled', inline: true },
+                { name: '📢 Channel',  value: config.channelId ? `<#${config.channelId}>` : '*not set*', inline: true },
+                { name: '📄 Template', value: `\`\`\`${config.message}\`\`\``, inline: false }
+            )
+            .setTimestamp();
+
+        return interaction.reply({ embeds: [statusEmbed, embed] });
+    }
+
+    // ── test ───────────────────────────────────
+    if (sub === 'test') {
+        const config = getWelcomeConfig(guildId);
+        if (!config || !config.channelId || !config.message) {
+            return interaction.reply({
+                content: '❌ No welcome message configured. Use `/welcome setup` first.',
+                ephemeral: true
+            });
+        }
+
+        const channel = interaction.guild.channels.cache.get(config.channelId);
+        if (!channel) {
+            return interaction.reply({
+                content: '❌ Configured welcome channel no longer exists. Please run `/welcome setup` again.',
+                ephemeral: true
+            });
+        }
+
+        const messageText = resolvePlaceholders(config.message, interaction.member);
+        const embed = buildWelcomeEmbed(interaction.member, messageText);
+
+        await channel.send({ content: `${interaction.member}`, embeds: [embed] });
+
+        return interaction.reply({
+            content: `✅ Test welcome sent to ${channel}.`,
+            ephemeral: true
+        });
+    }
+}
+
+// ─────────────────────────────────────────────
+// EXPORTS
+// ─────────────────────────────────────────────
+module.exports = {
+    data,
+    execute,
+    handleMemberJoin,
+    handlePrefix
 };

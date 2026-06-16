@@ -504,13 +504,9 @@ if (reactionRolesSystem.data) {
     register(reactionRolesSystem.data, reactionRolesSystem.execute.bind(reactionRolesSystem));
 }
 
-// Welcome commands
-if (welcomeModule.commands) {
-    for (const cmd of welcomeModule.commands) {
-        if (cmd.data) {
-            register(cmd.data, cmd.run.bind(cmd));
-        }
-    }
+// Welcome slash command
+if (welcomeModule.data) {
+    register(welcomeModule.data, welcomeModule.execute.bind(welcomeModule));
 }
 
 // Invite commands
@@ -1019,6 +1015,22 @@ client.on('messageCreate', async (message) => {
     } catch (err) {
         console.error('[Prefix AutoMod Error]', err);
     }
+
+    // ---- WELCOME COMMANDS ----
+    try {
+        const handled = await welcomeModule.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix Welcome Error]', err);
+    }
+
+    // ---- INVITES COMMANDS ----
+    try {
+        const handled = await invitesModule.handlePrefix(message, commandName, args);
+        if (handled) return;
+    } catch (err) {
+        console.error('[Prefix Invites Error]', err);
+    }
 });
 
 // =========================
@@ -1043,17 +1055,7 @@ client.on('guildMemberAdd', async (member) => {
 
     // Welcome message
     try {
-        const { welcomeDatabase } = welcomeModule;
-        const config = welcomeDatabase.get(member.guild.id);
-        if (config && config.channelId && config.message) {
-            const channel = member.guild.channels.cache.get(config.channelId);
-            if (channel) {
-                const msg = config.message
-                    .replace('{user}', member.toString())
-                    .replace('{guild}', member.guild.name);
-                await channel.send(msg).catch(() => {});
-            }
-        }
+        await welcomeModule.handleMemberJoin(member);
     } catch (err) {
         console.error('[Welcome Error]', err);
     }

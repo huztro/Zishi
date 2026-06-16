@@ -1,6 +1,6 @@
 /**
  * Zishi — Shortcuts & Utility Commands
- * Handles: !i, !mc, !invite, !ss, !supportserver, !owner, !ping, !uptime, !status
+ * Handles: !i, !mc, !addbot, !ss, !supportserver, !owner, !ping, !uptime, !status
  * All commands work as prefix commands. Slash equivalents are registered in index.js.
  */
 
@@ -35,15 +35,10 @@ function formatUptime(ms) {
 async function handleShortcut(message, commandName, args, client, startTime) {
 
     // ---- !i  (alias for !invites) ----
+    // Handled by re-routing commandName — invitesModule.handlePrefix picks it up
     if (commandName === 'i') {
-        // Delegate to the invites command via the commands Map on the client
-        // We re-emit as 'invites' so the existing handler picks it up
-        const invitesCmd = client.commands?.get('invites');
-        if (invitesCmd) {
-            await invitesCmd.run(message, args);
-        } else {
-            await message.reply({ content: '❌ Invites command not found.' });
-        }
+        const { handlePrefix: invitesHandlePrefix } = require('./invites.js');
+        await invitesHandlePrefix(message, 'invites', args);
         return true;
     }
 
@@ -68,8 +63,8 @@ async function handleShortcut(message, commandName, args, client, startTime) {
         return true;
     }
 
-    // ---- !invite  (bot invite link) ----
-    if (commandName === 'invite') {
+    // ---- !addbot  (bot invite link) ----
+    if (commandName === 'addbot') {
         const clientId = client.user.id;
         const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot+applications.commands`;
 
